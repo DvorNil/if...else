@@ -1,5 +1,7 @@
 #pragma once
 
+//Это чуть измененный bits/stdc++.h
+
 #include <algorithm>
 #include <bitset>
 #include <complex>
