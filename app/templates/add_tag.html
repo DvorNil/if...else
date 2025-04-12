@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Добавить тег</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+    </div>
+    <div class="posts-container">
+        <h2>Добавить тег</h2>
+        <form method="POST">
+            <label>Название тега:</label><br>
+            <input class="search-input" type="text" name="tag_name" required><br><br>
+            <button type="submit" class="menu-btn">Добавить</button>
+        </form>
+    </div>
+</body>
+</html>

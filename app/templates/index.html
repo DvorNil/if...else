@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BSU App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <div class="user-container" id="userContainer">
+            <div class="user-circle"></div>
+            {% if session.username %}
+                <div class="user-menu" id="userMenu">
+                    <a href="{{ url_for('logout') }}">Выйти</a>
+                    <a href="{{ url_for('register') }}">Сменить аккаунт</a>
+                    {% if session.role == 'organizer' %}
+                        <a href="{{ url_for('add_event') }}">Добавить мероприятие</a>
+                        <a href="{{ url_for('add_tag') }}">Добавить тег</a>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="user-menu" id="userMenu">
+                    <a href="{{ url_for('login') }}">Войти</a>
+                    <a href="{{ url_for('register') }}">Регистрация</a>
+                </div>
+            {% endif %}
+        </div>
+        <div class="menu-buttons">
+            <a href="{{ url_for('show_map') }}" class="menu-btn">Карта</a>
+            <div class="search-container">
+                <form method="GET" action="/">
+                    <input class="search-input" type="text" name="search" placeholder="Поиск..." value="{{ search_query|default('') }}">
+                    <button class="menu-btn" type="submit">Поиск</button>
+                </form>
+            </div>
+            <select class="menu-btn" onchange="filterPosts('tag', this.value)">
+                <option value="">Все теги</option>
+                {% for tag in tags %}
+                    <option value="{{ tag.name }}" {% if tag.name == selected_tag %}selected{% endif %}>{{ tag.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="posts-container">
+        {% for post in posts %}
+            <div class="post" onclick="showModal('{{ post.title }}', '{{ post.description }}', '{{ post.location }}', '{{ post.tags|map(attribute='name')|join(', ') }}', '{{ post.event_type }}', '{{ post.location }}', {{ post.lat|default(0) }}, {{ post.lng|default(0) }}, '{{ post.image_url|default('') }}')">
+                <img class="post-image" src="{{ post.image_url|default('https://via.placeholder.com/200x200?text=Image+Not+Found') }}" alt="{{ post.title }}">
+                <div class="post-content">
+                    <h3>{{ post.title }}</h3>
+                    <p>{{ post.description|truncate(100) }}</p>
+                    <p class="tags">Теги: {{ post.tags|map(attribute='name')|join(', ') }}</p>
+                    <p>Тип мероприятия: {{ post.event_type }}</p>
+                    <p>Адрес: {{ post.location }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="footer">
+        BSU
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="hideModal()">×</span>
+            <img id="modal-image" class="modal-image" src="" alt="Post image" onerror="this.src='https://via.placeholder.com/300x300?text=Image+Not+Found'">
+            <div class="modal-details">
+                <h2 id="modal-title"></h2>
+                <p id="modal-description"></p>
+                <p><strong>Место:</strong> <span id="modal-location"></span></p>
+                <p><strong>Адрес:</strong> <span id="modal-address"></span></p>
+                <p><strong>Теги:</strong> <span id="modal-tags"></span></p>
+                <p><strong>Тип мероприятия:</strong> <span id="modal-event-type"></span></p>
+                <div id="modal-map" class="modal-map"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

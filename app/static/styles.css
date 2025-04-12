@@ -1,0 +1,185 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #000000;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+}
+
+.header {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    width: 100%;
+    top: 0;
+}
+
+.user-container {
+    position: relative;
+    display: inline-block;
+}
+
+.user-circle {
+    width: 40px;
+    height: 40px;
+    background: #ff6200;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.user-menu {
+    display: none;
+    position: absolute;
+    background: #1a1a1a;
+    border-radius: 5px;
+    padding: 10px;
+    top: 50px;
+    left: 0;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.user-menu.visible {
+    display: block;
+    opacity: 1;
+}
+
+.user-menu a {
+    display: block;
+    color: #ff6200;
+    text-decoration: none;
+    padding: 5px 0;
+}
+
+.user-menu a:hover {
+    color: #ffffff;
+}
+
+.menu-buttons {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.menu-btn {
+    padding: 10px 20px;
+    background: rgba(255, 98, 0, 0.5);
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background 0.3s ease;
+    text-decoration: none;
+}
+
+.menu-btn:hover {
+    background: #ff6200;
+}
+
+.search-container {
+    display: flex;
+    gap: 10px;
+}
+
+.search-input {
+    padding: 8px;
+    background: #333333;
+    border: none;
+    color: white;
+    border-radius: 5px;
+}
+
+.posts-container {
+    margin-top: 100px;
+    padding: 20px;
+    display: grid;
+    gap: 20px;
+}
+
+.post {
+    display: flex;
+    background: #1a1a1a;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.post:hover {
+    transform: scale(1.02);
+}
+
+.post-image {
+    width: 50%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.post-content {
+    width: 50%;
+    padding: 20px;
+}
+
+.tags {
+    font-size: 0.9em;
+    color: #ff6200;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #ff6200;
+    text-align: center;
+    padding: 10px;
+    color: black;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    margin: 50px auto;
+    padding: 20px;
+    width: 80%;
+    max-width: 800px;
+    border-radius: 10px;
+    display: flex;
+    gap: 20px;
+}
+
+.modal-image {
+    width: 50%;
+    height: 300px;
+    object-fit: cover;
+}
+
+.modal-details {
+    width: 50%;
+}
+
+.modal-map {
+    width: 100%;
+    height: 220px;
+    margin-top: 20px;
+}
+
+.close-btn {
+    float: right;
+    font-size: 24px;
+    cursor: pointer;
+    color: #ff6200;
+}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Вход</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+    </div>
+    <div class="posts-container">
+        <h2>Вход</h2>
+        {% if error %}
+            <p style="color: #ff6200;">{{ error }}</p>
+        {% endif %}
+        <form method="POST">
+            <label>Имя пользователя:</label><br>
+            <input class="search-input" type="text" name="username" required><br><br>
+            <label>Пароль:</label><br>
+            <input class="search-input" type="password" name="password" required><br><br>
+            <button type="submit" class="menu-btn">Войти</button>
+        </form>
+    </div>
+</body>
+</html>

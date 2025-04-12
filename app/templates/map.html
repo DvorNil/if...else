@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Карта мероприятий</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        #map {
+            height: calc(100vh - 80px);
+            width: 100%;
+        }
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <a href="{{ url_for('home') }}" class="menu-btn">Назад</a>
+    </div>
+    <div id="map">{{ map_html|safe }}</div>
+</body>
+</html>
