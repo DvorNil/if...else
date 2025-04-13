@@ -24,6 +24,7 @@ userMenu.addEventListener('mouseleave', function() {
     }, 300);
 });
 
+
 function showModal(title, description, location, tags, eventType, address, lat, lng, imageUrl) {
     document.getElementById('modal-title').textContent = title;
     document.getElementById('modal-description').textContent = description;
