@@ -25,7 +25,8 @@ userMenu.addEventListener('mouseleave', function() {
 });
 
 
-function showModal(title, description, location, tags, eventType, address, lat, lng, imageUrl) {
+function showModal(eventId, title, description, location, tags, eventType, address, lat, lng, imageUrl) {
+    document.getElementById('event-id').value = eventId;
     document.getElementById('modal-title').textContent = title;
     document.getElementById('modal-description').textContent = description;
     document.getElementById('modal-location').textContent = location;
@@ -35,11 +36,58 @@ function showModal(title, description, location, tags, eventType, address, lat, 
     document.getElementById('modal-image').src = imageUrl || 'https://via.placeholder.com/300x300?text=Image+Not+Found';
     document.getElementById('modal').style.display = 'block';
 
+    fetch(`/get_status?event_id=${eventId}`)
+    .then(response => response.json())
+    .then(data => {
+        const activeBtn = data.status 
+            ? document.querySelector(`.status-btn[data-status="${data.status}"]`)
+            : null;
+            
+        if(activeBtn) activeBtn.classList.add('active');
+    });
+
     fetch('/generate_map?lat=' + lat + '&lng=' + lng)
         .then(response => response.text())
         .then(html => {
             document.getElementById('modal-map').innerHTML = html;
         });
+
+        checkCurrentStatus(eventData.id);
+}
+
+async function checkCurrentStatus(eventId) {
+    try {
+        const response = await fetch(`/event/${eventId}/status`);
+        const { status } = await response.json();
+        
+        document.querySelectorAll('.status-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.id === `mark-${status}`) {
+                btn.classList.add('active');
+            }
+        });
+    } catch (error) {
+        console.error('Ошибка проверки статуса:', error);
+    }
+}
+
+async function updateEventStatus(newStatus) {
+    try {
+        const eventId = // ... получить ID текущего мероприятия ...;
+        response = await fetch(`/event/${eventId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        if (response.ok) {
+            checkCurrentStatus(eventId);
+        }
+    } catch (error) {
+        console.error('Ошибка обновления статуса:', error);
+    }
 }
 
 function hideModal() {

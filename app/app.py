@@ -25,6 +25,24 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='participant')
+    favorite_organizers = db.relationship(
+        'User', 
+        secondary='user_organizer',
+        primaryjoin='UserOrganizer.user_id == User.id',
+        secondaryjoin='UserOrganizer.organizer_id == User.id',
+        backref=db.backref('followers', lazy='dynamic')
+    )
+    
+    favorite_tags = db.relationship(
+        'Tag',
+        secondary='user_tag',
+        backref=db.backref('users_favorited', lazy='dynamic')
+    )
+    event_statuses = db.relationship(
+        'UserEventStatus',
+        backref=db.backref('user', lazy='joined'),
+        lazy='dynamic'
+    )
 
 # Модель тега
 class Tag(db.Model):
@@ -54,6 +72,22 @@ class Event(db.Model):
 class EventTag(db.Model):
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), primary_key=True)
     tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+
+# Связующая Модель для избранных организаторов 
+class UserOrganizer(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+
+# Связующая Модель для избранных тегов 
+class UserTag(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+
+# Связующая Модель для статуса мероприятий пользователя
+class UserEventStatus(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), primary_key=True)
+    status = db.Column(db.Enum('planned', 'attended', name='event_status'), nullable=False)
 
 # Создание таблиц и добавление начальных данных
 with app.app_context():
@@ -237,6 +271,7 @@ def add_event():
     
     return render_template('add_event.html', tags=tags)
 
+
 # Страница карты
 @app.route('/map', methods=['GET'])
 def show_map():
@@ -263,6 +298,125 @@ def add_tag():
             db.session.commit()
         return redirect(url_for('home'))
     return render_template('add_tag.html')
+
+
+# Страница профиля
+@app.route('/profile')
+def profile():
+    if 'username' not in session:
+        return redirect(url_for('home'))
+    
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:  # если пользователь удален из БД, но есть в сессии
+        session.clear()
+        return redirect(url_for('login'))
+    
+    roleInText = {
+    'organizer': "Организатор",
+    'participant': "Участник"
+}
+
+    return render_template('profile.html', 
+                         username=user.username,
+                         email=user.email,
+                         role=roleInText[user.role])
+
+
+# Обработка статусов мероприятий
+@app.route('/event/<int:event_id>/status', methods=['GET', 'POST'])
+def event_status(event_id):
+    # Проверка авторизации
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        session.clear()
+        return redirect(url_for('login'))
+
+    # Получение мероприятия
+    event = Event.query.get(event_id)
+    if not event:
+        return jsonify({'error': 'Мероприятие не найдено'}), 404
+
+    if request.method == 'GET':
+        # Получение текущего статуса
+        status = UserEventStatus.query.filter_by(
+            user_id=user.id,
+            event_id=event_id
+        ).first()
+        return jsonify({'status': status.status if status else None})
+
+    if request.method == 'POST':
+        # Обновление статуса
+        try:
+            new_status = request.json.get('status')
+            
+            # Валидация статуса
+            if new_status not in ['planned', 'attended']:
+                return jsonify({'error': 'Некорректный статус'}), 400
+
+            # Удаление предыдущего статуса
+            UserEventStatus.query.filter_by(
+                user_id=user.id,
+                event_id=event_id
+            ).delete()
+
+            # Добавление нового статуса
+            if new_status:
+                status_entry = UserEventStatus(
+                    user_id=user.id,
+                    event_id=event_id,
+                    status=new_status
+                )
+                db.session.add(status_entry)
+
+            db.session.commit()
+            return jsonify({'success': True})
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+
+# кнопки 'В планах' и 'Посещено'
+@app.route('/update_status', methods=['POST'])
+def update_status():
+    # ... проверка авторизации ...
+    
+    event = Event.query.get(event_id)
+    user = User.query.filter_by(username=session['username']).first()
+
+    if new_status == 'planned':
+        user.planned_events.append(event)
+        user.attended_events.remove(event) if event in user.attended_events else None
+    elif new_status == 'attended':
+        user.attended_events.append(event)
+        user.planned_events.remove(event) if event in user.planned_events else None
+    elif new_status == 'none':
+        user.planned_events.remove(event) if event in user.planned_events else None
+        user.attended_events.remove(event) if event in user.attended_events else None
+
+    db.session.commit()
+    return jsonify({'success': True})
+
+# Получение статуса
+@app.route('/get_status')
+def get_status():
+    if 'username' not in session:
+        return jsonify({'status': None})
+    
+    event_id = request.args.get('event_id')
+    user = User.query.filter_by(username=session['username']).first()
+    event = Event.query.get(event_id)
+    
+    status = None
+    if event in user.planned_events:
+        status = 'planned'
+    elif event in user.attended_events:
+        status = 'attended'
+    
+    return jsonify({'status': status})
 
 if __name__ == '__main__':
     app.run(debug=True)
