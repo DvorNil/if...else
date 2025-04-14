@@ -106,3 +106,15 @@ function filterPosts(filterType, value) {
     url.searchParams.set(filterType, value);
     window.location = url;
 }
+
+function filterPosts(type, value) {
+    const searchInput = document.querySelector('input[name="search"]');
+    const form = document.querySelector('form');
+    
+    if (type === 'tag') {
+        const hiddenInput = document.querySelector('input[name="tag"]');
+        hiddenInput.value = value;
+    }
+    
+    form.submit();
+}

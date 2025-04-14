@@ -244,3 +244,13 @@ body {
     background: #555555;
     box-shadow: 0 0 8px rgba(85, 85, 85, 0.3);
 }
+
+.tag {
+    display: inline-block;
+    background-color: #f0f0f0;
+    padding: 2px 8px;
+    margin: 2px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    color: #555;
+}

@@ -162,9 +162,34 @@ def allowed_file(filename):
 # Главная страница
 @app.route('/', methods=['GET'])
 def home():
-    events = Event.query.filter_by(is_active=True).all()
+    search_query = request.args.get('search', '').strip()
+    selected_tag = request.args.get('tag', '').strip()
+    
+    query = Event.query.filter_by(is_active=True)
+    
+    if search_query:
+        # Ищем по основным полям ИЛИ по тегам
+        query = query.filter(
+            (Event.title.ilike(f'%{search_query}%')) | 
+            (Event.description.ilike(f'%{search_query}%')) | 
+            (Event.event_type.ilike(f'%{search_query}%')) | 
+            (Event.location.ilike(f'%{search_query}%')) |
+            (Event.tags.any(Tag.name.ilike(f'%{search_query}%')))
+        )
+    
+    if selected_tag:
+        tag = Tag.query.filter_by(name=selected_tag).first()
+        if tag:
+            query = query.join(Event.tags).filter(Tag.id == tag.id)
+    
+    events = query.all()
     tags = Tag.query.all()
-    return render_template('index.html', posts=events, tags=tags)
+    
+    return render_template('index.html', 
+                         posts=events, 
+                         tags=tags, 
+                         search_query=search_query,
+                         selected_tag=selected_tag)
 
 # Страница входа
 @app.route('/login', methods=['GET', 'POST'])

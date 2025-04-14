@@ -30,7 +30,8 @@
             <div class="search-container">
                 <form method="GET" action="/">
                     <input class="search-input" type="text" name="search" placeholder="Поиск..." value="{{ search_query|default('') }}">
-                    <button class="menu-btn" type="submit">Поиск</button>
+                    <input type="hidden" name="tag" value="{{ selected_tag|default('') }}">
+                        <button class="menu-btn" type="submit">Поиск</button>
                 </form>
             </div>
             <select class="menu-btn" onchange="filterPosts('tag', this.value)">
@@ -49,7 +50,11 @@
                 <div class="post-content">
                     <h3>{{ post.title }}</h3>
                     <p>{{ post.description|truncate(100) }}</p>
-                    <p class="tags">Теги: {{ post.tags|map(attribute='name')|join(', ') }}</p>
+                    <p class="tags">Теги: 
+                        {% for tag in post.tags %}
+                            <span class="tag">{{ tag.name }}</span>
+                        {% endfor %}
+                    </p>
                     <p>Тип мероприятия: {{ post.event_type }}</p>
                     <p>Адрес: {{ post.location }}</p>
                 </div>
