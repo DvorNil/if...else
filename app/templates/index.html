@@ -45,7 +45,18 @@
 
     <div class="posts-container">
         {% for post in posts %}
-            <div class="post" onclick="showModal('{{ post.title }}', '{{ post.description }}', '{{ post.location }}', '{{ post.tags|map(attribute='name')|join(', ') }}', '{{ post.event_type }}', '{{ post.location }}', {{ post.lat|default(0) }}, {{ post.lng|default(0) }}, '{{ post.image_url|default('') }}')">
+        <div class="post" onclick="showModal(
+            {{ post.id }}, 
+            '{{ post.title | escape }}', 
+            '{{ post.description | escape }}', 
+            '{{ post.location | escape }}', 
+            '{{ post.tags|map(attribute='name')|join(', ') | escape }}', 
+            '{{ post.event_type | escape }}', 
+            '{{ post.location | escape }}',  // Адрес
+            {{ post.lat | default(0) }},     // Широта (число)
+            {{ post.lng | default(0) }},     // Долгота (число)
+            '{{ post.image_url | default('') | escape }}'
+        )">
                 <img class="post-image" 
                     src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 
                     alt="{{ post.title }}"
@@ -73,10 +84,12 @@
         <div class="modal-content">
             <span class="close-btn" onclick="hideModal()">×</span>
             
+            <!-- Изменения в теге img: всегда показываем no-image по умолчанию -->
             <img id="modal-image" class="modal-image" 
-                src="" 
+                src="{{ url_for('static', filename='images/no-image.jpg') }}" 
                 alt="Изображение мероприятия"
-                onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
+                onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
+                
             <div class="modal-details">
                 <h2 id="modal-title"></h2>
                 <p id="modal-description"></p>

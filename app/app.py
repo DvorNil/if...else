@@ -314,6 +314,21 @@ def show_map():
     map_html = m._repr_html_()
     return render_template('map.html', map_html=map_html)
 
+
+@app.route('/generate_map')
+def generate_map():
+    lat = request.args.get('lat', type=float)
+    lng = request.args.get('lng', type=float)
+    
+    # Валидация координат
+    if lat is None or lng is None:
+        return jsonify({"error": "Invalid coordinates"}), 400
+    
+    # Создаем карту с маркером
+    m = folium.Map(location=[lat, lng], zoom_start=15)
+    folium.Marker([lat, lng]).add_to(m)
+    return m._repr_html_()
+
 # Добавление тега
 @app.route('/add_tag', methods=['GET', 'POST'])
 def add_tag():
@@ -353,58 +368,53 @@ def profile():
 # Обработка статусов мероприятий
 @app.route('/event/<int:event_id>/status', methods=['GET', 'POST'])
 def event_status(event_id):
-    # Проверка авторизации
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    
-    user = User.query.filter_by(username=session['username']).first()
-    if not user:
-        session.clear()
-        return redirect(url_for('login'))
+    try:
+        if 'username' not in session:
+            return jsonify({'error': 'Unauthorized'}), 401
 
-    # Получение мероприятия
-    event = Event.query.get(event_id)
-    if not event:
-        return jsonify({'error': 'Мероприятие не найдено'}), 404
+        user = User.query.filter_by(username=session['username']).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
 
-    if request.method == 'GET':
-        # Получение текущего статуса
-        status = UserEventStatus.query.filter_by(
-            user_id=user.id,
-            event_id=event_id
-        ).first()
-        return jsonify({'status': status.status if status else None})
+        event = Event.query.get(event_id)
+        if not event:
+            return jsonify({'error': 'Event not found'}), 404
 
-    if request.method == 'POST':
-        # Обновление статуса
-        try:
-            new_status = request.json.get('status')
-            
-            # Валидация статуса
-            if new_status not in ['planned', 'attended']:
-                return jsonify({'error': 'Некорректный статус'}), 400
+        if request.method == 'GET':
+            status_entry = UserEventStatus.query.filter_by(
+                user_id=user.id,
+                event_id=event_id
+            ).first()
+            return jsonify({'status': status_entry.status if status_entry else None})
 
-            # Удаление предыдущего статуса
+        if request.method == 'POST':
+            data = request.get_json()
+            new_status = data.get('status')
+
+            if new_status not in ['planned', 'attended', 'none']:
+                return jsonify({'error': 'Invalid status'}), 400
+
+            # Удаляем текущий статус
             UserEventStatus.query.filter_by(
                 user_id=user.id,
                 event_id=event_id
             ).delete()
 
-            # Добавление нового статуса
-            if new_status:
-                status_entry = UserEventStatus(
+            # Добавляем новый, если не 'none'
+            if new_status != 'none':
+                new_entry = UserEventStatus(
                     user_id=user.id,
                     event_id=event_id,
                     status=new_status
                 )
-                db.session.add(status_entry)
+                db.session.add(new_entry)
 
             db.session.commit()
             return jsonify({'success': True})
 
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        app.logger.error(f"Error in event_status: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 # кнопки 'В планах' и 'Посещено'
@@ -431,20 +441,29 @@ def update_status():
 # Получение статуса
 @app.route('/get_status')
 def get_status():
-    if 'username' not in session:
-        return jsonify({'status': None})
-    
-    event_id = request.args.get('event_id')
-    user = User.query.filter_by(username=session['username']).first()
-    event = Event.query.get(event_id)
-    
-    status = None
-    if event in user.planned_events:
-        status = 'planned'
-    elif event in user.attended_events:
-        status = 'attended'
-    
-    return jsonify({'status': status})
+    try:
+        if 'username' not in session:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        event_id = request.args.get('event_id', type=int)
+        if not event_id:
+            return jsonify({'error': 'Invalid event_id'}), 400
+
+        user = User.query.filter_by(username=session['username']).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        status_entry = UserEventStatus.query.filter_by(
+            user_id=user.id,
+            event_id=event_id
+        ).first()
+
+        # Возвращаем статус или null, если записи нет
+        return jsonify({'status': status_entry.status if status_entry else None})
+
+    except Exception as e:
+        app.logger.error(f"Error in get_status: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
