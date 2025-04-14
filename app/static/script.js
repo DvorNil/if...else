@@ -34,6 +34,14 @@ function showModal(eventId, title, description, location, tags, eventType, addre
     document.getElementById('modal-tags').textContent = tags;
     document.getElementById('modal-event-type').textContent = eventType;
     document.getElementById('modal-image').src = imageUrl || 'https://via.placeholder.com/300x300?text=Image+Not+Found';
+    
+    const modalImg = document.getElementById('modal-image');
+    if (imageUrl) {
+        modalImg.src = imageUrl.startsWith('http') ? imageUrl : `/static/${imageUrl}`;
+    } else {
+        modalImg.src = '/static/images/no-image.jpg';
+    }
+
     document.getElementById('modal').style.display = 'block';
 
     fetch(`/get_status?event_id=${eventId}`)

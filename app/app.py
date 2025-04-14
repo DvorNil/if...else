@@ -268,8 +268,11 @@ def add_event():
             file = request.files['image']
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                image_url = url_for('static', filename=f'uploads/{filename}')
+                # Создаем папку, если ее нет
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                image_url = f'uploads/{filename}'
 
         user = User.query.filter_by(username=session['username']).first()
         event = Event(

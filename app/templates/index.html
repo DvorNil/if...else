@@ -46,7 +46,10 @@
     <div class="posts-container">
         {% for post in posts %}
             <div class="post" onclick="showModal('{{ post.title }}', '{{ post.description }}', '{{ post.location }}', '{{ post.tags|map(attribute='name')|join(', ') }}', '{{ post.event_type }}', '{{ post.location }}', {{ post.lat|default(0) }}, {{ post.lng|default(0) }}, '{{ post.image_url|default('') }}')">
-                <img class="post-image" src="{{ post.image_url|default('https://via.placeholder.com/200x200?text=Image+Not+Found') }}" alt="{{ post.title }}">
+                <img class="post-image" 
+                    src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 
+                    alt="{{ post.title }}"
+                    onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
                 <div class="post-content">
                     <h3>{{ post.title }}</h3>
                     <p>{{ post.description|truncate(100) }}</p>
