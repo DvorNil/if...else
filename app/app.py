@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, session, redirect, url_for, jsonify
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
@@ -87,7 +87,7 @@ class UserTag(db.Model):
 class UserEventStatus(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), primary_key=True)
-    status = db.Column(db.Enum('planned', 'attended', name='event_status'), nullable=False)
+    status = db.Column(db.Enum('planned', 'attended', name='event_status'), nullable=True)
 
 # Создание таблиц и добавление начальных данных
 with app.app_context():
@@ -365,105 +365,56 @@ def profile():
                          role=roleInText[user.role])
 
 
-# Обработка статусов мероприятий
-@app.route('/event/<int:event_id>/status', methods=['GET', 'POST'])
-def event_status(event_id):
-    try:
-        if 'username' not in session:
-            return jsonify({'error': 'Unauthorized'}), 401
 
-        user = User.query.filter_by(username=session['username']).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-
-        event = Event.query.get(event_id)
-        if not event:
-            return jsonify({'error': 'Event not found'}), 404
-
-        if request.method == 'GET':
-            status_entry = UserEventStatus.query.filter_by(
-                user_id=user.id,
-                event_id=event_id
-            ).first()
-            return jsonify({'status': status_entry.status if status_entry else None})
-
-        if request.method == 'POST':
-            data = request.get_json()
-            new_status = data.get('status')
-
-            if new_status not in ['planned', 'attended', 'none']:
-                return jsonify({'error': 'Invalid status'}), 400
-
-            # Удаляем текущий статус
-            UserEventStatus.query.filter_by(
-                user_id=user.id,
-                event_id=event_id
-            ).delete()
-
-            # Добавляем новый, если не 'none'
-            if new_status != 'none':
-                new_entry = UserEventStatus(
-                    user_id=user.id,
-                    event_id=event_id,
-                    status=new_status
-                )
-                db.session.add(new_entry)
-
-            db.session.commit()
-            return jsonify({'success': True})
-
-    except Exception as e:
-        app.logger.error(f"Error in event_status: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-
-# кнопки 'В планах' и 'Посещено'
-@app.route('/update_status', methods=['POST'])
-def update_status():
-    # ... проверка авторизации ...
-    
-    event = Event.query.get(event_id)
+@app.route('/update_event_status', methods=['POST'])
+def update_event_status():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+        
     user = User.query.filter_by(username=session['username']).first()
-
-    if new_status == 'planned':
-        user.planned_events.append(event)
-        user.attended_events.remove(event) if event in user.attended_events else None
-    elif new_status == 'attended':
-        user.attended_events.append(event)
-        user.planned_events.remove(event) if event in user.planned_events else None
-    elif new_status == 'none':
-        user.planned_events.remove(event) if event in user.planned_events else None
-        user.attended_events.remove(event) if event in user.attended_events else None
-
-    db.session.commit()
-    return jsonify({'success': True})
-
-# Получение статуса
-@app.route('/get_status')
-def get_status():
-    try:
-        if 'username' not in session:
-            return jsonify({'error': 'Unauthorized'}), 401
-
-        event_id = request.args.get('event_id', type=int)
-        if not event_id:
-            return jsonify({'error': 'Invalid event_id'}), 400
-
-        user = User.query.filter_by(username=session['username']).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-
+    event_id = request.json.get('event_id')
+    status = request.json.get('status')
+    
+    # Если статус "none" - удаляем запись
+    if status == 'none':
+        UserEventStatus.query.filter_by(user_id=user.id, event_id=event_id).delete()
+    else:
         status_entry = UserEventStatus.query.filter_by(
-            user_id=user.id,
+            user_id=user.id, 
             event_id=event_id
         ).first()
+        
+        if status_entry:
+            status_entry.status = status
+        else:
+            status_entry = UserEventStatus(
+                user_id=user.id,
+                event_id=event_id,
+                status=status
+            )
+            db.session.add(status_entry)
+    
+    db.session.commit()
+    return jsonify({"success": True})
 
-        # Возвращаем статус или null, если записи нет
-        return jsonify({'status': status_entry.status if status_entry else None})
+@app.route('/get_event_status')
+def get_event_status():
+    if 'username' not in session:
+        return jsonify({"status": null}), 200
+    
+    user = User.query.filter_by(username=session['username']).first()
+    event_id = request.args.get('event_id', type=int)
+    
+    if not event_id:
+        return jsonify({"error": "Missing event_id"}), 400
+    
+    status_entry = UserEventStatus.query.filter_by(
+        user_id=user.id,
+        event_id=event_id
+    ).first()
+    
+    return jsonify({"status": status_entry.status if status_entry else null})
 
-    except Exception as e:
-        app.logger.error(f"Error in get_status: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -24,33 +24,9 @@ userMenu.addEventListener('mouseleave', function() {
     }, 300);
 });
 
-async function checkCurrentStatus(eventId) {
-    try {
-        const response = await fetch(`/event/${eventId}/status`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        document.querySelectorAll('.status-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.status === data.status) {
-                btn.classList.add('active');
-            }
-        });
-    } catch (error) {
-        console.error('Ошибка проверки статуса:', error);
-    }
-}
 
 function showModal(eventId, title, description, location, tags, eventType, address, lat, lng, imageUrl) {
-    // 1. Убедитесь, что eventId передан корректно (число)
-    if (typeof eventId !== 'number') {
-        console.error('Invalid eventId:', eventId);
-        return;
-    }
-
-    // 2. Заполнение данных модального окна
+    // Заполнение данных модального окна
     document.getElementById('event-id').value = eventId;
     document.getElementById('modal-title').textContent = title;
     document.getElementById('modal-description').textContent = description;
@@ -59,80 +35,105 @@ function showModal(eventId, title, description, location, tags, eventType, addre
     document.getElementById('modal-tags').textContent = tags;
     document.getElementById('modal-event-type').textContent = eventType;
 
-    // 3. Обработка изображения
+    // Обработка изображения
     const modalImg = document.getElementById('modal-image');
-    modalImg.src = '/static/images/no-image.jpg'; // Сброс перед открытием
+    modalImg.src = '/static/images/no-image.jpg';
     if (imageUrl && imageUrl.trim() !== '') {
         modalImg.src = imageUrl.startsWith('http') 
             ? imageUrl 
             : `/static/${imageUrl}`;
-    } else {
-        modalImg.src = '/static/images/no-image.jpg';
     }
 
-    // 4. Показ модального окна
+    // Показ модального окна
     document.getElementById('modal').style.display = 'block';
 
-    // 5. Запрос статуса мероприятия (используем eventId, а не eventData)
-    fetch(`/get_status?event_id=${eventId}`)
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        const activeBtn = data.status 
-            ? document.querySelector(`.status-btn[data-status="${data.status}"]`)
-            : null;
-        if (activeBtn) activeBtn.classList.add('active');
-    })
-    .catch(error => {
-        console.error('Ошибка запроса статуса:', error);
-    });
+    // Обработчики статусов
+    const statusControls = document.querySelector('.status-controls');
+    const eventIdInput = document.getElementById('event-id');
 
-    // 6. Генерация карты (проверяем lat и lng на валидность)
+    // Удаляем предыдущие обработчики
+    const newControls = statusControls.cloneNode(true);
+    statusControls.parentNode.replaceChild(newControls, statusControls);
+
+    // Функция обновления стилей кнопок
+    const updateButtonStyles = (currentStatus) => {
+        newControls.querySelectorAll('.status-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.status === currentStatus) {
+                btn.classList.add('active');
+            }
+        });
+    };
+
+    // Общий обработчик кликов
+    const handleStatusClick = async (e) => {
+        const button = e.target.closest('.status-btn');
+        if (!button) return;
+
+        const status = button.dataset.status;
+        
+        try {
+            const response = await fetch('/update_event_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    event_id: eventId, // Используем напрямую eventId из аргументов
+                    status: status === 'none' ? null : status
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Ошибка сервера');
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                updateButtonStyles(status === 'none' ? null : status);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert(error.message || 'Ошибка обновления статуса');
+        }
+    };
+
+    // Добавляем обработчик на контейнер
+    newControls.addEventListener('click', handleStatusClick);
+
+    // Загрузка текущего статуса
+    fetch(`/get_event_status?event_id=${eventId}`)
+        .then(response => {
+            if (!response.ok) throw new Error('Ошибка сети');
+            return response.json();
+        })
+        .then(data => updateButtonStyles(data.status))
+        .catch(error => console.error('Error:', error));
+
+    // Генерация карты
     if (typeof lat === 'number' && typeof lng === 'number') {
         fetch(`/generate_map?lat=${lat}&lng=${lng}`)
             .then(response => {
-                if (!response.ok) throw new Error('Map generation failed');
+                if (!response.ok) throw new Error('Ошибка генерации карты');
                 return response.text();
             })
             .then(html => {
                 document.getElementById('modal-map').innerHTML = html;
             })
-            .catch(error => console.error('Map fetch error:', error));
+            .catch(error => {
+                console.error('Map fetch error:', error);
+                document.getElementById('modal-map').innerHTML = '<p>Карта недоступна</p>';
+            });
     } else {
-        console.error('Invalid coordinates:', lat, lng);
-    }
-
-    // 7. Убрать вызов checkCurrentStatus, если он дублирует функционал
-     checkCurrentStatus(eventId); // Раскомментировать, если функция существует
-}
-
-
-async function updateEventStatus(newStatus) {
-    try {
-        const eventId = // ... получить ID текущего мероприятия ...;
-        response = await fetch(`/event/${eventId}/status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ status: newStatus })
-        });
-        
-        if (response.ok) {
-            checkCurrentStatus(eventId);
+        document.getElementById('modal-map').innerHTML = '<p>Координаты невалидны</p>';
         }
-    } catch (error) {
-        console.error('Ошибка обновления статуса:', error);
-    }
 }
 
 function hideModal() {
     const modalImg = document.getElementById('modal-image');
-    modalImg.src = '/static/images/no-image.jpg'; // Сброс изображения
+    modalImg.src = '/static/images/no-image.jpg';
     document.getElementById('modal').style.display = 'none';
 }
 
