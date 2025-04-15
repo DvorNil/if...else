@@ -365,55 +365,104 @@ def profile():
                          role=roleInText[user.role])
 
 
-
 @app.route('/update_event_status', methods=['POST'])
 def update_event_status():
     if 'username' not in session:
         return jsonify({"error": "Unauthorized"}), 401
-        
+
+    data = request.get_json()
+    event_id = data.get('event_id')
+    status = data.get('status')
+    
     user = User.query.filter_by(username=session['username']).first()
-    event_id = request.json.get('event_id')
-    status = request.json.get('status')
-    
-    # Если статус "none" - удаляем запись
-    if status == 'none':
-        UserEventStatus.query.filter_by(user_id=user.id, event_id=event_id).delete()
-    else:
-        status_entry = UserEventStatus.query.filter_by(
-            user_id=user.id, 
-            event_id=event_id
-        ).first()
-        
-        if status_entry:
-            status_entry.status = status
-        else:
-            status_entry = UserEventStatus(
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    try:
+        # Если статус 'none' - удаляем запись
+        if status == 'none':
+            UserEventStatus.query.filter_by(
                 user_id=user.id,
-                event_id=event_id,
-                status=status
-            )
-            db.session.add(status_entry)
-    
-    db.session.commit()
-    return jsonify({"success": True})
+                event_id=event_id
+            ).delete()
+        else:
+            # Ищем существующую запись
+            status_entry = UserEventStatus.query.filter_by(
+                user_id=user.id,
+                event_id=event_id
+            ).first()
+
+            if status_entry:
+                # Обновляем существующую запись
+                status_entry.status = status
+            else:
+                # Создаем новую запись
+                new_status = UserEventStatus(
+                    user_id=user.id,
+                    event_id=event_id,
+                    status=status
+                )
+                db.session.add(new_status)
+
+        db.session.commit()
+        return jsonify({
+            "success": True,
+            "event_id": event_id,
+            "user_id": user.id,
+            "status": status if status != 'none' else None
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "error": "Database error",
+            "details": str(e)
+        }), 500
 
 @app.route('/get_event_status')
 def get_event_status():
+    # Проверка авторизации пользователя
     if 'username' not in session:
-        return jsonify({"status": null}), 200
-    
+        return jsonify({"status": None}), 200
+
+    # Получение текущего пользователя
     user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return jsonify({"status": None}), 200
+
+    # Валидация параметра event_id
     event_id = request.args.get('event_id', type=int)
-    
     if not event_id:
-        return jsonify({"error": "Missing event_id"}), 400
-    
+        return jsonify({"error": "Missing or invalid event_id"}), 400
+
+    # Проверка существования события
+    event = Event.query.get(event_id)
+    if not event:
+        return jsonify({"error": "Event not found"}), 404
+
+    # Поиск статуса пользователя для события
     status_entry = UserEventStatus.query.filter_by(
         user_id=user.id,
         event_id=event_id
     ).first()
-    
-    return jsonify({"status": status_entry.status if status_entry else null})
+
+    return jsonify({
+        "status": status_entry.status if status_entry else None
+    })
+
+@app.route('/get_all_events_status')
+def get_all_events_status():
+    if 'username' not in session:
+        return jsonify({})
+
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return jsonify({})
+
+    statuses = UserEventStatus.query.filter_by(user_id=user.id).all()
+    return jsonify({
+        int(status.event_id): status.status for status in statuses
+    })
 
 
 if __name__ == '__main__':

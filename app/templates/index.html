@@ -57,6 +57,7 @@
             {{ post.lng | default(0) }},     // Долгота (число)
             '{{ post.image_url | default('', true) | escape }}'
         )">
+                <img class="post-status-icon" src="" alt="Status" style="display: none;">
                 <img class="post-image" 
                     src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 
                     alt="{{ post.title }}"
@@ -82,13 +83,14 @@
 
     <div id="modal" class="modal">
         <div class="modal-content">
+            <img id="status-icon" class="status-icon" src="" alt="Status Icon">
             <span class="close-btn" onclick="hideModal()">×</span>
             
             <!-- Изменения в теге img: всегда показываем no-image по умолчанию -->
             <img id="modal-image" class="modal-image" 
                 src="{{ url_for('static', filename='images/no-image.jpg') }}" 
                 alt="Изображение мероприятия"
-                onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
+             onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/no-image.jpg') }}';">
                 
             <div class="modal-details">
                 <h2 id="modal-title"></h2>
