@@ -55,7 +55,7 @@
             '{{ post.location | escape }}',  // Адрес
             {{ post.lat | default(0) }},     // Широта (число)
             {{ post.lng | default(0) }},     // Долгота (число)
-            '{{ post.image_url | default('') | escape }}'
+            '{{ post.image_url | default('', true) | escape }}'
         )">
                 <img class="post-image" 
                     src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 

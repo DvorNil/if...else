@@ -61,6 +61,7 @@ function showModal(eventId, title, description, location, tags, eventType, addre
 
     // 3. Обработка изображения
     const modalImg = document.getElementById('modal-image');
+    modalImg.src = '/static/images/no-image.jpg'; // Сброс перед открытием
     if (imageUrl && imageUrl.trim() !== '') {
         modalImg.src = imageUrl.startsWith('http') 
             ? imageUrl 
@@ -130,6 +131,8 @@ async function updateEventStatus(newStatus) {
 }
 
 function hideModal() {
+    const modalImg = document.getElementById('modal-image');
+    modalImg.src = '/static/images/no-image.jpg'; // Сброс изображения
     document.getElementById('modal').style.display = 'none';
 }
 
