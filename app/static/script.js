@@ -51,9 +51,6 @@ function showModal(eventId, title, description, location, tags, eventType, addre
     // Показ модального окна
     document.getElementById('modal').style.display = 'block';
 
-
-
-
     const statusIcon = document.getElementById('status-icon');
     
     if (!statusIcon) {
@@ -79,10 +76,6 @@ function showModal(eventId, title, description, location, tags, eventType, addre
             console.error('Ошибка получения статуса:', error);
             statusIcon.style.display = 'none';
         });
-
-
-
-
 
     const statusControls = document.querySelector('.status-controls');
     const newControls = statusControls.cloneNode(true);
@@ -147,13 +140,6 @@ function showModal(eventId, title, description, location, tags, eventType, addre
     };
     // Добавляем обработчик на новый контейнер
     newControls.addEventListener('click', handleStatusClick);
-
-    
-
-
-
-
-
 
     // Генерация карты
     if (typeof lat === 'number' && typeof lng === 'number') {

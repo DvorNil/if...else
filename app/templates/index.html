@@ -15,6 +15,7 @@
                     {% if session.role == 'organizer' %}
                         <a href="{{ url_for('add_event') }}">Добавить мероприятие</a>
                         <a href="{{ url_for('add_tag') }}">Добавить тег</a>
+                        <a href="{{ url_for('my_events') }}">Мои мероприятия</a>
                     {% endif %}
                     <a href="{{ url_for('profile') }}">Профиль</a>
                 </div>

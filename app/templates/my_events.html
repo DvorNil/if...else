@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Мои мероприятия</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+    </div>
+    <div class="posts-container">
+        <h2>Мои мероприятия</h2>
+        {% for event in events %}
+        <div class="post">
+            <img class="post-image" 
+                 src="{{ url_for('static', filename=event.image_url) if event.image_url else url_for('static', filename='images/no-image.jpg') }}" 
+                 alt="{{ event.title }}"
+                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
+            <div class="post-content">
+                <h3>{{ event.title }}</h3>
+                <p>{{ event.description|truncate(100) }}</p>
+                <p class="tags">Теги: 
+                    {% for tag in event.tags %}
+                        <span class="tag">{{ tag.name }}</span>
+                    {% endfor %}
+                </p>
+                <p>Тип мероприятия: {{ event.event_type }}</p>
+                <p>Адрес: {{ event.location }}</p>
+                <div class="event-actions">
+                    <a href="{{ url_for('edit_event', event_id=event.id) }}" class="menu-btn">Изменить</a>
+                    <button onclick="confirmDelete({{ event.id }})" class="menu-btn delete-btn">Удалить</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function confirmDelete(eventId) {
+            if (confirm('Вы уверены, что хотите удалить это мероприятие?')) {
+                fetch(`/delete_event/${eventId}`, {
+                    method: 'DELETE',
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Ошибка при удалении мероприятия');
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
