@@ -17,8 +17,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'tesamye.ifelse@gmail.com'
 app.config['MAIL_PASSWORD'] = 'dzfo lmul vkkv yymx'
 app.config['MAIL_DEFAULT_SENDER'] = 'tesamye.ifelse@gmail.com'
@@ -274,14 +274,34 @@ def register():
         confirm_url = url_for('confirm_email', token=token, _external=True)
         
         msg = Message(
-            'Подтвердите ваш email',
-            recipients=[email],
-            html=render_template('email_confirmation.html', confirm_url=confirm_url)
+            subject="Подтверждение регистрации",
+            recipients=[user.email],
+            sender=app.config['MAIL_DEFAULT_SENDER']
         )
-        mail.send(msg)
         
-        return render_template('register.html', 
-                             success="Регистрация почти завершена! Пожалуйста, проверьте вашу почту для подтверждения email.")
+        # Явно указываем HTML и текстовую версии
+        msg.body = f"Для подтверждения email перейдите по ссылке: {confirm_url}"
+        msg.html = render_template(
+            'email_confirmation_message.html',
+            confirm_url=confirm_url,
+            username=user.username
+        )
+        
+        try:
+            mail.send(msg)
+
+            # Небольшая отладка
+            print("письмо отправлено")
+
+            return render_template('register.html',
+                                success="Письмо с подтверждением отправлено!")
+        except Exception as e:
+            print(f"Ошибка отправки письма: {str(e)}")
+            # Логируем детали ошибки SMTP, если они есть
+            if hasattr(e, 'smtp_error'):
+                print(f"SMTP error: {e.smtp_error}")
+            return render_template('register.html',
+                                error=f"Ошибка отправки письма: {str(e)}")
     
     return render_template('register.html', error=None)
 
@@ -374,6 +394,34 @@ def confirm_email(token):
         
         return render_template('email_confirmation.html', 
                              success="Ваш email успешно подтвержден! Теперь вы можете пользоваться всеми возможностями сайта.")
+
+# повторная отправка письма
+@app.route('/resend-confirmation')
+def resend_confirmation():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.filter_by(username=session['username']).first()
+    
+    if user.email_confirmed:
+        return redirect(url_for('home'))
+    
+    token = serializer.dumps(user.email, salt=app.config['SECURITY_PASSWORD_SALT'])
+    confirm_url = url_for('confirm_email', token=token, _external=True)
+    
+    msg = Message(
+        'Подтвердите ваш email',
+        recipients=[user.email],
+        html=render_template(
+            'email_confirmation_message.html',
+            confirm_url=confirm_url,
+            username=user.username
+        )
+    )
+    mail.send(msg)
+    
+    return render_template('email_confirmation.html',
+                         message="Письмо с подтверждением отправлено повторно.")
 
 # Страница карты
 @app.route('/map', methods=['GET'])

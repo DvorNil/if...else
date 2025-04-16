@@ -1,10 +1,23 @@
 <!DOCTYPE html>
 <html>
-<body>
-    <h1>Добро пожаловать на наш сайт!</h1>
-    <p>Для завершения регистрации, пожалуйста, перейдите по следующей ссылке:</p>
-    <p><a href="{{ confirm_url }}">Подтвердить email</a></p>
-    <p>Если вы не регистрировались на нашем сайте, просто проигнорируйте это письмо.</p>
-    <p>Ссылка действительна в течение 1 часа.</p>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Подтверждение email</title>
+</head>
+<body style="font-family: Arial, sans-serif;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #ff6200;">Подтверждение регистрации</h2>
+        <p>Здравствуйте, {{ username }}!</p>
+        <p>Для завершения регистрации нажмите на кнопку ниже:</p>
+        <a href="{{ confirm_url }}" 
+           style="display: inline-block; padding: 10px 20px; background-color: #ff6200; color: white; text-decoration: none; border-radius: 5px;">
+           Подтвердить email
+        </a>
+        <p>Или скопируйте эту ссылку в браузер:</p>
+        <p style="word-break: break-all;"><code>{{ confirm_url }}</code></p>
+        <p>Если вы не регистрировались на нашем сайте, проигнорируйте это письмо.</p>
+        <hr>
+        <p>С уважением,<br>Команда сайта</p>
+    </div>
 </body>
 </html>
