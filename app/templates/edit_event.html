@@ -3,23 +3,107 @@
 <head>
     <title>Редактировать мероприятие</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map-container {
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+            border: 1px solid #ff6200;
+            border-radius: 5px;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .map-coordinates {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .map-coordinates input {
+            width: 100%;
+        }
+    </style>
     <script>
+        let map;
+        let marker;
+        
         window.onload = function() {
+            // Инициализация карты с текущими координатами
+            initMap({{ event.lat if event.lat else 53.9 }}, {{ event.lng if event.lng else 27.5667 }});
+            
+            // Установка маркера, если координаты есть
+            {% if event.lat and event.lng %}
+                updateMarker({{ event.lat }}, {{ event.lng }});
+            {% endif %}
+            
+            // Ограничения для даты
             const dateTimeField = document.querySelector('input[type="datetime-local"]');
             const now = new Date();
             const maxDate = new Date(now.getFullYear() + 5, now.getMonth(), now.getDate());
-            const toISOLocal = (d) => {
-                const z = n => ('0' + n).slice(-2);
-                return d.getFullYear() + '-' +
-                    z(d.getMonth()+1) + '-' +
-                    z(d.getDate()) + 'T' +
-                    z(d.getHours()) + ':' +
-                    z(d.getMinutes());
-            };
-
-            dateTimeField.min = toISOLocal(now);
-            dateTimeField.max = toISOLocal(maxDate);
+            
+            dateTimeField.min = now.toISOString().slice(0, 16);
+            dateTimeField.max = maxDate.toISOString().slice(0, 16);
+            
+            // Переключение между онлайн/оффлайн
+            const formatSelect = document.querySelector('select[name="format"]');
+            toggleFormatFields(formatSelect.value);
+            
+            formatSelect.addEventListener('change', function() {
+                toggleFormatFields(this.value);
+            });
+            
+            // Переключение приватности
+            const privacySelect = document.querySelector('select[name="is_private"]');
+            togglePasswordField(privacySelect.value);
+            
+            privacySelect.addEventListener('change', function() {
+                togglePasswordField(this.value);
+            });
         };
+        
+        function initMap(lat, lng) {
+            map = L.map('map').setView([lat, lng], {% if event.lat and event.lng %}15{% else %}7{% endif %});
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            map.on('click', function(e) {
+                updateMarker(e.latlng.lat, e.latlng.lng);
+            });
+        }
+        
+        function updateMarker(lat, lng) {
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            
+            marker = L.marker([lat, lng]).addTo(map);
+            document.querySelector('input[name="lat"]').value = lat;
+            document.querySelector('input[name="lng"]').value = lng;
+            map.setView([lat, lng], 15);
+        }
+        
+        function toggleFormatFields(format) {
+            const offlineFields = document.querySelectorAll('.offline-field');
+            const onlineField = document.querySelector('.online-field');
+            
+            if (format === 'online') {
+                offlineFields.forEach(field => field.style.display = 'none');
+                onlineField.style.display = 'block';
+            } else {
+                offlineFields.forEach(field => field.style.display = 'block');
+                onlineField.style.display = 'none';
+            }
+        }
+        
+        function togglePasswordField(value) {
+            const passwordField = document.getElementById('password-field');
+            passwordField.style.display = value === 'true' ? 'block' : 'none';
+        }
     </script>
 </head>
 <body>
@@ -29,58 +113,86 @@
     <div class="posts-container">
         <h2>Редактировать мероприятие</h2>
         <form method="POST" enctype="multipart/form-data">
+            <!-- Основные поля -->
             <label>Название:</label><br>
             <input class="search-input" type="text" name="title" value="{{ event.title }}" required><br><br>
+            
             <label>Описание:</label><br>
             <textarea class="search-input" name="description" required>{{ event.description }}</textarea><br><br>
+            
             <label>Формат:</label><br>
             <select class="menu-btn" name="format" required>
                 <option value="online" {% if event.format == 'online' %}selected{% endif %}>Онлайн</option>
                 <option value="offline" {% if event.format == 'offline' %}selected{% endif %}>Офлайн</option>
             </select><br><br>
-            <label>Место проведения:</label><br>
-            <input class="search-input" type="text" name="location" value="{{ event.location }}" required><br><br>
+            
+            <!-- Онлайн информация -->
+            <div class="online-field" style="display: {% if event.format == 'online' %}block{% else %}none{% endif %};">
+                <label>Информация для подключения:</label><br>
+                <textarea class="search-input" name="online_info">{{ event.online_info or '' }}</textarea><br><br>
+            </div>
+            
+            <!-- Офлайн информация -->
+            <div class="offline-field" style="display: {% if event.format == 'offline' %}block{% else %}none{% endif %};">
+                <label>Название места проведения:</label><br>
+                <input class="search-input" type="text" name="location_name" value="{{ event.location_name or '' }}"><br><br>
+                
+                <label>Адрес места проведения:</label><br>
+                <input class="search-input" type="text" name="location_address" value="{{ event.location_address or '' }}"><br><br>
+                
+                <label>Выберите место на карте:</label>
+                <div id="map-container">
+                    <div id="map"></div>
+                </div>
+                <div class="map-coordinates">
+                    <input class="search-input" type="number" step="any" name="lat" placeholder="Широта" min="-90" max="90" value="{{ event.lat or '' }}">
+                    <input class="search-input" type="number" step="any" name="lng" placeholder="Долгота" min="-180" max="180" value="{{ event.lng or '' }}">
+                </div>
+            </div>
+            
+            <!-- Дата и время -->
             <label>Дата и время:</label><br>
             <input class="search-input" 
                    type="datetime-local" 
                    name="date_time" 
-                   value="{{ event.date_time.strftime('%Y-%m-%dT%H:%M') }}"
-                   required
-                   title="Дата должна быть между сегодня и 5 годами вперед"><br><br>
+                   value="{{ event.date_time.strftime('%Y-%m-%dT%H:%M') }}" 
+                   required><br><br>
+            
             <label>Продолжительность (в минутах):</label><br>
             <input class="search-input" 
                    type="number" 
                    name="duration" 
                    required
                    min="1"
-                   value="{{ event.duration }}"
-                   title="Продолжительность должна быть не менее 1 минуты"><br><br>
-            <label>Широта:</label><br>
-            <input class="search-input" 
-                   type="number" 
-                   step="any" 
-                   name="lat"
-                   min="-90" 
-                   max="90"
-                   title="Диапазон от -90 до 90"
-                   value="{{ event.lat }}"><br><br>
-            <label>Долгота:</label><br>
-            <input class="search-input" 
-                   type="number" 
-                   step="any" 
-                   name="lng"
-                   min="-180" 
-                   max="180"
-                   title="Диапазон от -180 до 180"
-                   value="{{ event.lng }}"><br><br>
+                   value="{{ event.duration }}"><br><br>
+            
             <label>Тип мероприятия:</label><br>
             <input class="search-input" type="text" name="event_type" value="{{ event.event_type }}" required><br><br>
+            
+            <!-- Приватность -->
+            <label>Приватность:</label><br>
+            <select class="menu-btn" name="is_private" onchange="togglePasswordField(this.value)">
+                <option value="false" {% if not event.is_private %}selected{% endif %}>Публичное</option>
+                <option value="true" {% if event.is_private %}selected{% endif %}>Приватное</option>
+            </select><br><br>
+            
+            <div id="password-field" style="display: {% if event.is_private %}block{% else %}none{% endif %};">
+                <label>Пароль для доступа:</label><br>
+                <input class="search-input" type="password" name="password" value="{{ event.password or '' }}"><br><br>
+            </div>
+            
+            <!-- Теги -->
             <label>Теги:</label><br>
             <select class="menu-btn" name="tags" multiple>
                 {% for tag in tags %}
-                    <option value="{{ tag.id }}" {% if tag.id in selected_tag_ids %}selected{% endif %}>{{ tag.name }}</option>
+                    <option value="{{ tag.id }}" 
+                        {% if tag in event.tags %}selected{% endif %}>
+                        {{ tag.name }}
+                    </option>
                 {% endfor %}
             </select><br><br>
+            
+            <!-- Изображение -->
             <label>Текущее изображение:</label><br>
             {% if event.image_url %}
                 <img src="{{ url_for('static', filename=event.image_url) }}" style="max-width: 200px; max-height: 200px;"><br>
@@ -89,6 +201,7 @@
             {% endif %}
             <label>Новое изображение:</label><br>
             <input type="file" name="image" accept="image/*"><br><br>
+            
             <button type="submit" class="menu-btn">Сохранить изменения</button>
         </form>
     </div>

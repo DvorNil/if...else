@@ -46,22 +46,25 @@
 
     <div class="posts-container">
         {% for post in posts %}
-        <div class="post" onclick="showModal(
-            {{ post.id }}, 
-            '{{ post.title | escape }}', 
-            '{{ post.description | escape }}', 
-            '{{ post.location | escape }}', 
-            '{{ post.tags|map(attribute='name')|join(', ') | escape }}', 
-            '{{ post.event_type | escape }}', 
-            '{{ post.location | escape }}',  // Адрес
-            {{ post.lat | default(0) }},     // Широта (число)
-            {{ post.lng | default(0) }},     // Долгота (число)
-            '{{ post.image_url | default('', true) | escape }}'
-        )">
-                 <img class="post-status-icon" 
-                 src="/static/images/nullMini.png" 
-                 alt="Status" 
-                 style="display: none;">
+            <div class="post" onclick="showModal(
+                {{ post.id }}, 
+                '{{ post.title | escape }}', 
+                '{{ post.description | escape }}', 
+                '{{ post.location_name | escape if post.location_name else '' }}', 
+                '{{ post.tags|map(attribute='name')|join(', ') | escape }}', 
+                '{{ post.event_type | escape }}', 
+                '{{ post.location_address | escape if post.location_address else '' }}',
+                {{ post.lat | default(0) }},
+                {{ post.lng | default(0) }},
+                '{{ post.image_url | default('', true) | escape }}',
+                {{ 'true' if post.is_private else 'false' }},
+                '{{ post.format }}',
+                '{{ post.online_info | escape if post.online_info else '' }}'
+            )">
+            {% if post.is_private %}
+                <div class="private-badge">Приватное</div>
+            {% endif %}
+                <img class="post-status-icon" src="" alt="Status" style="display: none;">
                 <img class="post-image" 
                     src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 
                     alt="{{ post.title }}"
@@ -87,32 +90,48 @@
 
     <div id="modal" class="modal">
         <div class="modal-content">
-            <img id="status-icon" class="status-icon" src="" alt="Status Icon">
-            <span class="close-btn" onclick="hideModal()">×</span>
-            
-            <!-- Изменения в теге img: всегда показываем no-image по умолчанию -->
-            <img id="modal-image" class="modal-image" 
-                src="{{ url_for('static', filename='images/no-image.jpg') }}" 
-                alt="Изображение мероприятия"
-             onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/no-image.jpg') }}';">
-                
-            <div class="modal-details">
-                <h2 id="modal-title"></h2>
-                <p id="modal-description"></p>
-                <p><strong>Место:</strong> <span id="modal-location"></span></p>
-                <p><strong>Адрес:</strong> <span id="modal-address"></span></p>
-                <p><strong>Теги:</strong> <span id="modal-tags"></span></p>
-                <p><strong>Тип мероприятия:</strong> <span id="modal-event-type"></span></p>
-                <div id="modal-map" class="modal-map"></div>
+            <!-- Форма ввода пароля -->
+            <div id="password-prompt" style="display: none;">
+                <h2>Это приватное мероприятие</h2>
+                <p>Введите пароль для доступа:</p>
+                <input type="password" id="event-password" class="search-input">
+                <button onclick="checkEventPassword()" class="menu-btn">Продолжить</button>
             </div>
             
-            <div class="status-controls">
-                <input type="hidden" id="event-id" value="">
-                <button class="status-btn" data-status="planned">В планах</button>
-                <button class="status-btn" data-status="attended">Посещено</button>
-                <button class="status-btn reset-btn" data-status="none">Сбросить</button>
+            <!-- Основное содержимое -->
+            <div id="event-content">
+                <span class="close-btn" onclick="hideModal()">×</span>
+                <img id="modal-image" class="modal-image" src="" alt="Изображение мероприятия">
+                
+                <div class="modal-details">
+                    <h2 id="modal-title"></h2>
+                    <p id="modal-description"></p>
+                    
+                    <!-- Для офлайн мероприятий -->
+                    <div id="location-info">
+                        <p><strong>Место проведения:</strong> <span id="modal-location-name"></span></p>
+                        <p><strong>Адрес:</strong> <span id="modal-location-address"></span></p>
+                    </div>
+                    
+                    <!-- Для онлайн мероприятий -->
+                    <div id="online-info" style="display: none;">
+                        <p><strong>Информация для подключения:</strong> <span id="modal-online-info"></span></p>
+                    </div>
+                    
+                    <p><strong>Теги:</strong> <span id="modal-tags"></span></p>
+                    <p><strong>Тип мероприятия:</strong> <span id="modal-event-type"></span></p>
+                    <div id="modal-map" class="modal-map"></div>
+                </div>
+                
+                <div class="status-controls">
+                    <input type="hidden" id="event-id" value="">
+                    <button class="status-btn" data-status="planned">В планах</button>
+                    <button class="status-btn" data-status="attended">Посещено</button>
+                    <button class="status-btn reset-btn" data-status="none">Сбросить</button>
+                </div>
             </div>
         </div>
+        <input type="hidden" id="modal-event-data" value="">
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
