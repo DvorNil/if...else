@@ -587,6 +587,84 @@ def get_all_events_status():
         int(status.event_id): status.status for status in statuses
     })
 
+# Страница мероприятий организатора
+@app.route('/my_events')
+def my_events():
+    if 'username' not in session or session['role'] != 'organizer':
+        return redirect(url_for('home'))
+    
+    user = User.query.filter_by(username=session['username']).first()
+    events = Event.query.filter_by(organizer_id=user.id, is_active=True).all()
+    
+    return render_template('my_events.html', events=events)
+
+# Удаление мероприятия
+@app.route('/delete_event/<int:event_id>', methods=['DELETE'])
+def delete_event(event_id):
+    if 'username' not in session or session['role'] != 'organizer':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    event = Event.query.get_or_404(event_id)
+    user = User.query.filter_by(username=session['username']).first()
+    
+    if event.organizer_id != user.id:
+        return jsonify({"error": "Forbidden"}), 403
+    
+    # Мягкое удаление (изменение статуса is_active)
+    event.is_active = False
+    db.session.commit()
+    
+    return jsonify({"success": True})
+
+# Редактирование мероприятия
+@app.route('/edit_event/<int:event_id>', methods=['GET', 'POST'])
+def edit_event(event_id):
+    if 'username' not in session or session['role'] != 'organizer':
+        return redirect(url_for('home'))
+    
+    event = Event.query.get_or_404(event_id)
+    user = User.query.filter_by(username=session['username']).first()
+    
+    if event.organizer_id != user.id:
+        return redirect(url_for('home'))
+    
+    tags = Tag.query.all()
+    
+    if request.method == 'POST':
+        event.title = request.form.get('title')
+        event.description = request.form.get('description')
+        event.format = request.form.get('format')
+        event.location = request.form.get('location')
+        event.date_time = datetime.strptime(request.form.get('date_time'), '%Y-%m-%dT%H:%M')
+        event.duration = int(request.form.get('duration'))
+        event.lat = float(request.form.get('lat', 0))
+        event.lng = float(request.form.get('lng', 0))
+        event.event_type = request.form.get('event_type')
+        
+        # Обновление тегов
+        EventTag.query.filter_by(event_id=event.id).delete()
+        selected_tags = request.form.getlist('tags')
+        for tag_id in selected_tags:
+            tag = Tag.query.get(tag_id)
+            if tag:
+                db.session.add(EventTag(event_id=event.id, tag_id=tag.id))
+        
+        # Обновление изображения
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                event.image_url = f'uploads/{filename}'
+        
+        db.session.commit()
+        return redirect(url_for('my_events'))
+    
+    # Заполняем форму текущими данными
+    selected_tag_ids = [tag.id for tag in event.tags]
+    return render_template('edit_event.html', event=event, tags=tags, selected_tag_ids=selected_tag_ids)
 
 if __name__ == '__main__':
     app.run(debug=True)

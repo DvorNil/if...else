@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Редактировать мероприятие</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script>
+        window.onload = function() {
+            const dateTimeField = document.querySelector('input[type="datetime-local"]');
+            const now = new Date();
+            const maxDate = new Date(now.getFullYear() + 5, now.getMonth(), now.getDate());
+            const toISOLocal = (d) => {
+                const z = n => ('0' + n).slice(-2);
+                return d.getFullYear() + '-' +
+                    z(d.getMonth()+1) + '-' +
+                    z(d.getDate()) + 'T' +
+                    z(d.getHours()) + ':' +
+                    z(d.getMinutes());
+            };
+
+            dateTimeField.min = toISOLocal(now);
+            dateTimeField.max = toISOLocal(maxDate);
+        };
+    </script>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('my_events') }}" class="menu-btn">Назад к моим мероприятиям</a>
+    </div>
+    <div class="posts-container">
+        <h2>Редактировать мероприятие</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <label>Название:</label><br>
+            <input class="search-input" type="text" name="title" value="{{ event.title }}" required><br><br>
+            <label>Описание:</label><br>
+            <textarea class="search-input" name="description" required>{{ event.description }}</textarea><br><br>
+            <label>Формат:</label><br>
+            <select class="menu-btn" name="format" required>
+                <option value="online" {% if event.format == 'online' %}selected{% endif %}>Онлайн</option>
+                <option value="offline" {% if event.format == 'offline' %}selected{% endif %}>Офлайн</option>
+            </select><br><br>
+            <label>Место проведения:</label><br>
+            <input class="search-input" type="text" name="location" value="{{ event.location }}" required><br><br>
+            <label>Дата и время:</label><br>
+            <input class="search-input" 
+                   type="datetime-local" 
+                   name="date_time" 
+                   value="{{ event.date_time.strftime('%Y-%m-%dT%H:%M') }}"
+                   required
+                   title="Дата должна быть между сегодня и 5 годами вперед"><br><br>
+            <label>Продолжительность (в минутах):</label><br>
+            <input class="search-input" 
+                   type="number" 
+                   name="duration" 
+                   required
+                   min="1"
+                   value="{{ event.duration }}"
+                   title="Продолжительность должна быть не менее 1 минуты"><br><br>
+            <label>Широта:</label><br>
+            <input class="search-input" 
+                   type="number" 
+                   step="any" 
+                   name="lat"
+                   min="-90" 
+                   max="90"
+                   title="Диапазон от -90 до 90"
+                   value="{{ event.lat }}"><br><br>
+            <label>Долгота:</label><br>
+            <input class="search-input" 
+                   type="number" 
+                   step="any" 
+                   name="lng"
+                   min="-180" 
+                   max="180"
+                   title="Диапазон от -180 до 180"
+                   value="{{ event.lng }}"><br><br>
+            <label>Тип мероприятия:</label><br>
+            <input class="search-input" type="text" name="event_type" value="{{ event.event_type }}" required><br><br>
+            <label>Теги:</label><br>
+            <select class="menu-btn" name="tags" multiple>
+                {% for tag in tags %}
+                    <option value="{{ tag.id }}" {% if tag.id in selected_tag_ids %}selected{% endif %}>{{ tag.name }}</option>
+                {% endfor %}
+            </select><br><br>
+            <label>Текущее изображение:</label><br>
+            {% if event.image_url %}
+                <img src="{{ url_for('static', filename=event.image_url) }}" style="max-width: 200px; max-height: 200px;"><br>
+            {% else %}
+                <p>Нет изображения</p>
+            {% endif %}
+            <label>Новое изображение:</label><br>
+            <input type="file" name="image" accept="image/*"><br><br>
+            <button type="submit" class="menu-btn">Сохранить изменения</button>
+        </form>
+    </div>
+</body>
+</html>
