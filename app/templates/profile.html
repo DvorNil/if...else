@@ -8,13 +8,71 @@
     <div class="header">
         <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
     </div>
+    
     <div class="posts-container">
         <h2>Профиль пользователя</h2>
+        
         <div class="profile-info">
             <p><strong>Никнейм:</strong> {{ username }}</p>
             <p><strong>Почта:</strong> {{ email }}</p>
             <p><strong>Роль:</strong> {{ role }}</p>
         </div>
+
+        <!-- Список посещенных мероприятий -->
+        <details class="events-section">
+            <summary>Посещенные мероприятия</summary>
+            <div class="posts-container">
+                {% for post in attended_events %}
+                <div class="post">
+                    <img class="post-image" 
+                         src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 
+                         alt="{{ post.title }}"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
+                    <div class="post-content">
+                        <h3>{{ post.title }}</h3>
+                        <p>{{ post.description|truncate(100) }}</p>
+                        <p class="tags">Теги: 
+                            {% for tag in post.tags %}
+                                <span class="tag">{{ tag.name }}</span>
+                            {% endfor %}
+                        </p>
+                        <p>Тип мероприятия: {{ post.event_type }}</p>
+                        <p>Адрес: {{ post.location }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <p class="empty-message">Нет посещенных мероприятий</p>
+                {% endfor %}
+            </div>
+        </details>
+
+        <!-- Список планируемых мероприятий -->
+        <details class="events-section">
+            <summary>Мероприятия в планах</summary>
+            <div class="posts-container">
+                {% for post in planned_events %}
+                <div class="post">
+                    <img class="post-image" 
+                         src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 
+                         alt="{{ post.title }}"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
+                    <div class="post-content">
+                        <h3>{{ post.title }}</h3>
+                        <p>{{ post.description|truncate(100) }}</p>
+                        <p class="tags">Теги: 
+                            {% for tag in post.tags %}
+                                <span class="tag">{{ tag.name }}</span>
+                            {% endfor %}
+                        </p>
+                        <p>Тип мероприятия: {{ post.event_type }}</p>
+                        <p>Адрес: {{ post.location }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <p class="empty-message">Нет мероприятий в планах</p>
+                {% endfor %}
+            </div>
+        </details>
     </div>
 </body>
 </html>

@@ -466,28 +466,6 @@ def add_tag():
     return render_template('add_tag.html')
 
 
-# Страница профиля
-@app.route('/profile')
-def profile():
-    if 'username' not in session:
-        return redirect(url_for('home'))
-    
-    user = User.query.filter_by(username=session['username']).first()
-    if not user:  # если пользователь удален из БД, но есть в сессии
-        session.clear()
-        return redirect(url_for('login'))
-    
-    roleInText = {
-    'organizer': "Организатор",
-    'participant': "Участник"
-}
-
-    return render_template('profile.html', 
-                         username=user.username,
-                         email=user.email,
-                         role=roleInText[user.role])
-
-
 @app.route('/update_event_status', methods=['POST'])
 def update_event_status():
     if 'username' not in session:
@@ -665,6 +643,45 @@ def edit_event(event_id):
     # Заполняем форму текущими данными
     selected_tag_ids = [tag.id for tag in event.tags]
     return render_template('edit_event.html', event=event, tags=tags, selected_tag_ids=selected_tag_ids)
+
+
+# Страница профиля
+@app.route('/profile')
+def profile():
+    if 'username' not in session:
+        return redirect(url_for('home'))
+    
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        session.clear()
+        return redirect(url_for('login'))
+
+    # Получаем статусы мероприятий пользователя
+    statuses = user.event_statuses.all()
+
+    # Разделяем мероприятия по статусам
+    planned_events = []
+    attended_events = []
+    
+    for status in statuses:
+        event = Event.query.get(status.event_id)
+        if event and event.is_active:
+            if status.status == 'planned':
+                planned_events.append(event)
+            elif status.status == 'attended':
+                attended_events.append(event)
+
+    role_in_text = {
+        'organizer': "Организатор",
+        'participant': "Участник"
+    }
+
+    return render_template('profile.html',
+                         username=user.username,
+                         email=user.email,
+                         role=role_in_text.get(user.role, "Участник"),
+                         attended_events=attended_events,
+                         planned_events=planned_events)
 
 if __name__ == '__main__':
     app.run(debug=True)
