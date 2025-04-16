@@ -37,6 +37,9 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='participant')
+    email_confirmed = db.Column(db.Boolean, default=False)
+    email_confirmed_on = db.Column(db.DateTime, nullable=True)
+    
     favorite_organizers = db.relationship(
         'User', 
         secondary='user_organizer',
@@ -55,8 +58,6 @@ class User(db.Model):
         backref=db.backref('user', lazy='joined'),
         lazy='dynamic'
     )
-    email_confirmed = db.Column(db.Boolean, default=False)
-    email_confirmed_on = db.Column(db.DateTime, nullable=True)
 
 # Модель тега
 class Tag(db.Model):
@@ -69,8 +70,10 @@ class Event(db.Model):
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    format = db.Column(db.String(20), nullable=False)
-    location = db.Column(db.String(200))
+    format = db.Column(db.String(20), nullable=False)  # 'online' или 'offline'
+    location_name = db.Column(db.String(200))  # Название места
+    location_address = db.Column(db.String(200))  # Физический адрес
+    online_info = db.Column(db.Text)  # Информация для онлайн мероприятий
     date_time = db.Column(db.DateTime, nullable=False)
     duration = db.Column(db.Integer, nullable=False)
     image_url = db.Column(db.String(200))
@@ -79,6 +82,8 @@ class Event(db.Model):
     event_type = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
+    is_private = db.Column(db.Boolean, default=False)
+    password = db.Column(db.String(100))  # Пароль для приватных мероприятий
     organizer = db.relationship('User', backref='events')
     tags = db.relationship('Tag', secondary='event_tag', backref='events')
 
@@ -140,7 +145,8 @@ with app.app_context():
                 "title": "Концерт в Минске",
                 "description": "Живой концерт популярной группы.",
                 "format": "offline",
-                "location": "ул. Ленина, 10, Минск",
+                "location_name": "Концертный зал 'Минск'",  # Новое поле
+                "location_address": "ул. Ленина, 10, Минск",  # Новое поле
                 "date_time": datetime(2024, 11, 15, 19, 0),
                 "duration": 120,
                 "lat": 53.9,
@@ -152,7 +158,8 @@ with app.app_context():
                 "title": "Выставка картин",
                 "description": "Экспозиция современных художников.",
                 "format": "offline",
-                "location": "ул. Советская, 5, Гродно",
+                "location_name": "Гродненский художественный музей",  # Новое поле
+                "location_address": "ул. Советская, 5, Гродно",  # Новое поле
                 "date_time": datetime(2024, 11, 20, 10, 0),
                 "duration": 180,
                 "lat": 53.6833,
@@ -167,7 +174,8 @@ with app.app_context():
                 description=event_data['description'],
                 organizer_id=organizer.id,
                 format=event_data['format'],
-                location=event_data['location'],
+                location_name=event_data['location_name'],  # Используем новое поле
+                location_address=event_data['location_address'],  # Используем новое поле
                 date_time=event_data['date_time'],
                 duration=event_data['duration'],
                 lat=event_data['lat'],
@@ -180,7 +188,7 @@ with app.app_context():
                 tag = Tag.query.filter_by(name=tag_name).first()
                 if tag:
                     db.session.add(EventTag(event_id=event.id, tag_id=tag.id))
-    db.session.commit()
+        db.session.commit()
 
 # Вспомогательная функция для проверки расширения файла
 def allowed_file(filename):
@@ -323,20 +331,23 @@ def add_event():
         title = request.form.get('title')
         description = request.form.get('description')
         format_type = request.form.get('format')
-        location = request.form.get('location')
+        location_name = request.form.get('location_name')
+        location_address = request.form.get('location_address')
+        online_info = request.form.get('online_info')
         date_time = datetime.strptime(request.form.get('date_time'), '%Y-%m-%dT%H:%M')
         duration = int(request.form.get('duration'))
-        lat = float(request.form.get('lat', 0))
-        lng = float(request.form.get('lng', 0))
+        lat = float(request.form.get('lat', 0)) if format_type == 'offline' else None
+        lng = float(request.form.get('lng', 0)) if format_type == 'offline' else None
         event_type = request.form.get('event_type')
         selected_tags = request.form.getlist('tags')
+        is_private = request.form.get('is_private') == 'true'
+        password = request.form.get('password') if is_private else None
         image_url = None
 
         if 'image' in request.files:
             file = request.files['image']
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                # Создаем папку, если ее нет
                 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
@@ -348,13 +359,17 @@ def add_event():
             description=description,
             organizer_id=user.id,
             format=format_type,
-            location=location,
+            location_name=location_name,
+            location_address=location_address,
+            online_info=online_info,
             date_time=date_time,
             duration=duration,
             lat=lat,
             lng=lng,
             event_type=event_type,
-            image_url=image_url
+            image_url=image_url,
+            is_private=is_private,
+            password=password
         )
         db.session.add(event)
         db.session.flush()
@@ -665,6 +680,20 @@ def edit_event(event_id):
     # Заполняем форму текущими данными
     selected_tag_ids = [tag.id for tag in event.tags]
     return render_template('edit_event.html', event=event, tags=tags, selected_tag_ids=selected_tag_ids)
+
+# Проверка пароля к приватному ивенту
+@app.route('/check_event_password/<int:event_id>', methods=['POST'])
+def check_event_password(event_id):
+    data = request.get_json()
+    event = Event.query.get_or_404(event_id)
+    
+    if not event.is_private:
+        return jsonify({"success": True})
+    
+    if not event.password or event.password == data.get('password'):
+        return jsonify({"success": True})
+    
+    return jsonify({"success": False})
 
 if __name__ == '__main__':
     app.run(debug=True)

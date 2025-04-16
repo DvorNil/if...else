@@ -28,151 +28,143 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPostStatusIcons();
 });
 
+// Глобальная переменная для хранения данных о текущем мероприятии
+let currentEventData = null;
 
-function showModal(eventId, title, description, location, tags, eventType, address, lat, lng, imageUrl) {
-    // Заполнение данных модального окна
-    document.getElementById('event-id').value = eventId;
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-description').textContent = description;
-    document.getElementById('modal-location').textContent = location;
-    document.getElementById('modal-address').textContent = address;
-    document.getElementById('modal-tags').textContent = tags;
-    document.getElementById('modal-event-type').textContent = eventType;
-
-    // Обработка изображения
-    const modalImg = document.getElementById('modal-image');
-    modalImg.src = '/static/images/no-image.jpg';
-    if (imageUrl && imageUrl.trim() !== '') {
-        modalImg.src = imageUrl.startsWith('http') 
-            ? imageUrl 
-            : `/static/${imageUrl}`;
-    }
-
-    // Показ модального окна
-    document.getElementById('modal').style.display = 'block';
-
-    const statusIcon = document.getElementById('status-icon');
+function showModal(eventId, title, description, locationName, tags, eventType, 
+                  locationAddress, lat, lng, imageUrl, isPrivate, format, onlineInfo) {
     
-    if (!statusIcon) {
-        console.error('Элемент с id="status-icon" не найден!');
-        return;
+    // Сохраняем все данные мероприятия в объект
+    currentEventData = {
+        eventId, title, description, locationName, tags, eventType,
+        locationAddress, lat, lng, imageUrl, isPrivate, format, onlineInfo
+    };
+    
+    // Сохраняем в скрытое поле (как JSON строку)
+    document.getElementById('modal-event-data').value = JSON.stringify(currentEventData);
+    
+    // Проверяем доступ для приватных мероприятий
+    if (isPrivate && !checkAccess(eventId)) {
+        showPasswordPrompt();
+    } else {
+        showEventContent();
+    }
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+function showPasswordPrompt() {
+    // Показываем только форму ввода пароля
+    document.getElementById('password-prompt').style.display = 'block';
+    document.getElementById('event-content').style.display = 'none';
+    
+    // Устанавливаем только название и изображение
+    document.getElementById('modal-title').textContent = currentEventData.title;
+    
+    const modalImg = document.getElementById('modal-image');
+    modalImg.src = currentEventData.imageUrl 
+        ? (currentEventData.imageUrl.startsWith('http') 
+            ? currentEventData.imageUrl 
+            : `/static/${currentEventData.imageUrl}`)
+        : '/static/images/no-image.jpg';
+}
+
+function checkEventPassword() {
+    const password = document.getElementById('event-password').value;
+    const eventId = currentEventData.eventId;
+    
+    fetch(`/check_event_password/${eventId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Сохраняем доступ
+            localStorage.setItem(`event_${eventId}_access`, 'granted');
+            // Показываем полное содержимое
+            showEventContent();
+        } else {
+            alert('Неверный пароль');
+        }
+    });
+}
+
+function showEventContent() {
+    // Скрываем форму ввода пароля
+    document.getElementById('password-prompt').style.display = 'none';
+    document.getElementById('event-content').style.display = 'block';
+    
+    // Заполняем все данные
+    const e = currentEventData;
+    document.getElementById('event-id').value = e.eventId;
+    document.getElementById('modal-title').textContent = e.title;
+    document.getElementById('modal-description').textContent = e.description;
+    document.getElementById('modal-tags').textContent = e.tags;
+    document.getElementById('modal-event-type').textContent = e.eventType;
+
+    // Устанавливаем изображение
+    const modalImg = document.getElementById('modal-image');
+    modalImg.src = e.imageUrl 
+        ? (e.imageUrl.startsWith('http') 
+            ? e.imageUrl 
+            : `/static/${e.imageUrl}`)
+        : '/static/images/no-image.jpg';
+
+    // Показываем соответствующие поля для формата
+    if (e.format === 'online') {
+        document.getElementById('location-info').style.display = 'none';
+        document.getElementById('online-info').style.display = 'block';
+        document.getElementById('modal-online-info').textContent = e.onlineInfo || 'Информация не указана';
+    } else {
+        document.getElementById('location-info').style.display = 'block';
+        document.getElementById('online-info').style.display = 'none';
+        document.getElementById('modal-location-name').textContent = e.locationName || 'Не указано';
+        document.getElementById('modal-location-address').textContent = e.locationAddress || 'Не указан';
     }
 
+    // Генерация карты (только для офлайн мероприятий)
+    if (e.format === 'offline' && e.lat && e.lng) {
+        fetch(`/generate_map?lat=${e.lat}&lng=${e.lng}`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('modal-map').innerHTML = html;
+            });
+    } else {
+        document.getElementById('modal-map').innerHTML = '';
+    }
+    
+    // Загрузка статуса мероприятия
+    loadEventStatus(e.eventId);
+}
+
+function loadEventStatus(eventId) {
     fetch(`/get_event_status?event_id=${eventId}`)
-        .then(response => {
-            if (!response.ok) throw new Error('Ошибка сети');
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
+            const statusIcon = document.getElementById('status-icon');
             if (data.status === 'planned') {
                 statusIcon.src = '/static/images/plannedMini.png';
                 statusIcon.style.display = 'block';
             } else if (data.status === 'attended') {
                 statusIcon.src = '/static/images/attendedMini.png';
                 statusIcon.style.display = 'block';
+            } else {
+                statusIcon.style.display = 'none';
             }
-        })
-        .catch(error => {
-            console.error('Ошибка получения статуса:', error);
-            statusIcon.style.display = 'none';
         });
+}
 
-    const statusControls = document.querySelector('.status-controls');
-    const newControls = statusControls.cloneNode(true);
-    statusControls.parentNode.replaceChild(newControls, statusControls);
-
-    // Обработчик кликов (объявлен внутри showModal)
-    const handleStatusClick = async (e) => {
-        const button = e.target.closest('.status-btn');
-        if (!button) return;
-    
-        try {
-            const response = await fetch('/update_event_status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({
-                    event_id: eventId,
-                    status: button.dataset.status
-                })
-            });
-    
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Ошибка сервера');
-            }
-    
-            const data = await response.json();
-            if (data.success) {
-                // Обновляем иконку в модалке
-                const statusIcon = document.getElementById('status-icon');
-                if (data.status === 'planned') {
-                    statusIcon.src = '/static/images/plannedMini.png';
-                    statusIcon.style.display = 'block';
-                } else if (data.status === 'attended') {
-                    statusIcon.src = '/static/images/attendedMini.png';
-                    statusIcon.style.display = 'block';
-                } else {
-                    statusIcon.style.display = 'none';
-                }
-    
-                // Обновляем иконку в посте
-                const posts = document.querySelectorAll('.post');
-                posts.forEach(post => {
-                    const postEventId = getEventIdFromPost(post);
-                    if (postEventId === eventId) {
-                        const postIcon = post.querySelector('.post-status-icon');
-                        if (data.status === 'none') {
-                            postIcon.style.display = 'none';
-                        } else {
-                            postIcon.src = `/static/images/${data.status}Mini.png`;
-                            postIcon.style.display = 'block';
-                        }
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message || 'Ошибка обновления статуса');
-        }
-    };
-    // Добавляем обработчик на новый контейнер
-    newControls.addEventListener('click', handleStatusClick);
-
-    // Генерация карты
-    if (typeof lat === 'number' && typeof lng === 'number') {
-        fetch(`/generate_map?lat=${lat}&lng=${lng}`)
-            .then(response => {
-                if (!response.ok) throw new Error('Ошибка генерации карты');
-                return response.text();
-            })
-            .then(html => {
-                document.getElementById('modal-map').innerHTML = html;
-            })
-            .catch(error => {
-                console.error('Map fetch error:', error);
-                document.getElementById('modal-map').innerHTML = '<p>Карта недоступна</p>';
-            });
-    } else {
-        document.getElementById('modal-map').innerHTML = '<p>Координаты невалидны</p>';
-        }
+function checkAccess(eventId) {
+    return localStorage.getItem(`event_${eventId}_access`) === 'granted';
 }
 
 function hideModal() {
-    const modalImg = document.getElementById('modal-image');
-    const statusIcon = document.getElementById('status-icon');
-    
-   // modalImg.src = '/static/images/no-image.jpg';
-    statusIcon.style.display = 'none'; // Скрываем иконку при закрытии
     document.getElementById('modal').style.display = 'none';
-}
-window.onclick = function(event) {
-    const modal = document.getElementById('modal');
-    if (event.target == modal) {
-        hideModal();
-    }
+    currentEventData = null;
 }
 
 function filterPosts(filterType, value) {

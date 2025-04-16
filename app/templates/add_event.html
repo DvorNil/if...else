@@ -3,8 +3,38 @@
 <head>
     <title>Добавить мероприятие</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map-container {
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+            border: 1px solid #ff6200;
+            border-radius: 5px;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .map-coordinates {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .map-coordinates input {
+            width: 100%;
+        }
+    </style>
     <script>
+        let map;
+        let marker;
+        
         window.onload = function() {
+            // Инициализация карты
+            initMap();
+            
+            // Ограничения для даты
             const dateTimeField = document.querySelector('input[type="datetime-local"]');
             const now = new Date();
             const maxDate = new Date(now.getFullYear() + 5, now.getMonth(), now.getDate());
@@ -19,7 +49,48 @@
 
             dateTimeField.min = toISOLocal(now);
             dateTimeField.max = toISOLocal(maxDate);
+            
+            // Переключение между онлайн/оффлайн
+            const formatSelect = document.querySelector('select[name="format"]');
+            toggleFormatFields(formatSelect.value);
+            
+            formatSelect.addEventListener('change', function() {
+                toggleFormatFields(this.value);
+            });
         };
+        
+        function initMap() {
+            // Центр Беларуси
+            map = L.map('map').setView([53.9, 27.5667], 7);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Обработчик клика по карте
+            map.on('click', function(e) {
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+                
+                marker = L.marker(e.latlng).addTo(map);
+                document.querySelector('input[name="lat"]').value = e.latlng.lat;
+                document.querySelector('input[name="lng"]').value = e.latlng.lng;
+            });
+        }
+        
+        function toggleFormatFields(format) {
+            const offlineFields = document.querySelectorAll('.offline-field');
+            const onlineField = document.querySelector('.online-field');
+            
+            if (format === 'online') {
+                offlineFields.forEach(field => field.style.display = 'none');
+                onlineField.style.display = 'block';
+            } else {
+                offlineFields.forEach(field => field.style.display = 'block');
+                onlineField.style.display = 'none';
+            }
+        }
     </script>
 </head>
 <body>
@@ -34,46 +105,61 @@
             <label>Описание:</label><br>
             <textarea class="search-input" name="description" required></textarea><br><br>
             <label>Формат:</label><br>
-            <select class="menu-btn" name="format" required>
+            <select class="menu-btn" name="format" required onchange="toggleFormatFields(this.value)">
                 <option value="online">Онлайн</option>
                 <option value="offline">Офлайн</option>
             </select><br><br>
-            <label>Место проведения:</label><br>
-            <input class="search-input" type="text" name="location" required><br><br>
+            
+            <!-- Поля для онлайн мероприятий -->
+            <div class="online-field" style="display: none;">
+                <label>Информация для участников (ссылка, инструкции):</label><br>
+                <textarea class="search-input" name="online_info"></textarea><br><br>
+            </div>
+            
+            <!-- Поля для офлайн мероприятий -->
+            <div class="offline-field">
+                <label>Название места проведения:</label><br>
+                <input class="search-input" type="text" name="location_name"><br><br>
+                <label>Адрес места проведения:</label><br>
+                <input class="search-input" type="text" name="location_address"><br><br>
+                
+                <label>Выберите место на карте:</label>
+                <div id="map-container">
+                    <div id="map"></div>
+                </div>
+                <div class="map-coordinates">
+                    <input class="search-input" type="number" step="any" name="lat" placeholder="Широта" min="-90" max="90">
+                    <input class="search-input" type="number" step="any" name="lng" placeholder="Долгота" min="-180" max="180">
+                </div>
+            </div>
+            
             <label>Дата и время:</label><br>
             <input class="search-input" 
                    type="datetime-local" 
                    name="date_time" 
                    required
                    title="Дата должна быть между сегодня и 5 годами вперед"><br><br>
-                   <label>Продолжительность (в минутах):</label><br>
-                   <input class="search-input" 
-                          type="number" 
-                          name="duration" 
-                          required
-                          min="1"
-                          value="{{ duration }}"
-                          title="Продолжительность должна быть не менее 1 минуты"><br><br>
-            <label>Широта:</label><br>
+            <label>Продолжительность (в минутах):</label><br>
             <input class="search-input" 
                    type="number" 
-                   step="any" 
-                   name="lat"
-                   min="-90" 
-                   max="90"
-                   title="Диапазон от -90 до 90"
-                   value="{{ lat }}"><br><br>
-            <label>Долгота:</label><br>
-            <input class="search-input" 
-                   type="number" 
-                   step="any" 
-                   name="lng"
-                   min="-180" 
-                   max="180"
-                   title="Диапазон от -180 до 180"
-                   value="{{ lng }}"><br><br>
+                   name="duration" 
+                   required
+                   min="1"
+                   title="Продолжительность должна быть не менее 1 минуты"><br><br>
             <label>Тип мероприятия:</label><br>
             <input class="search-input" type="text" name="event_type" required><br><br>
+            
+            <label>Приватность:</label><br>
+            <select class="menu-btn" name="is_private" onchange="togglePasswordField(this.value)">
+                <option value="false">Публичное</option>
+                <option value="true">Приватное</option>
+            </select><br><br>
+            
+            <div id="password-field" style="display: none;">
+                <label>Пароль для доступа:</label><br>
+                <input class="search-input" type="password" name="password"><br><br>
+            </div>
+            
             <label>Теги:</label><br>
             <select class="menu-btn" name="tags" multiple>
                 {% for tag in tags %}
@@ -85,5 +171,12 @@
             <button type="submit" class="menu-btn">Добавить</button>
         </form>
     </div>
+    
+    <script>
+        function togglePasswordField(value) {
+            const passwordField = document.getElementById('password-field');
+            passwordField.style.display = value === 'true' ? 'block' : 'none';
+        }
+    </script>
 </body>
 </html>
