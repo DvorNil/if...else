@@ -801,7 +801,7 @@ def edit_event(event_id):
     selected_tag_ids = [tag.id for tag in event.tags]
     return render_template('edit_event.html', event=event, tags=tags, selected_tag_ids=selected_tag_ids)
 
-<<<<<<< HEAD
+
 
 # Проверка пароля к приватному ивенту
 @app.route('/check_event_password/<int:event_id>', methods=['POST'])
@@ -816,130 +816,6 @@ def check_event_password(event_id):
         return jsonify({"success": True})
     
     return jsonify({"success": False})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -980,77 +856,7 @@ def profile():
                          role=role_in_text.get(user.role, "Участник"),
                          attended_events=attended_events,
                          planned_events=planned_events)
-=======
 
-
-# Страница профиля
-@app.route('/profile')
-def profile():
-    if 'username' not in session:
-        return redirect(url_for('home'))
-    
-    user = User.query.filter_by(username=session['username']).first()
-    if not user:
-        session.clear()
-        return redirect(url_for('login'))
-
-    # Получаем статусы мероприятий пользователя
-    statuses = user.event_statuses.all()
-
-    # Разделяем мероприятия по статусам
-    planned_events = []
-    attended_events = []
-    
-    for status in statuses:
-        event = Event.query.get(status.event_id)
-        if event and event.is_active:
-            if status.status == 'planned':
-                planned_events.append(event)
-            elif status.status == 'attended':
-                attended_events.append(event)
-
-    role_in_text = {
-        'organizer': "Организатор",
-        'participant': "Участник"
-    }
-
-    return render_template('profile.html',
-                         username=user.username,
-                         email=user.email,
-                         role=role_in_text.get(user.role, "Участник"),
-                         attended_events=attended_events,
-                         planned_events=planned_events)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Проверка пароля к приватному ивенту
-@app.route('/check_event_password/<int:event_id>', methods=['POST'])
-def check_event_password(event_id):
-    data = request.get_json()
-    event = Event.query.get_or_404(event_id)
-    
-    if not event.is_private:
-        return jsonify({"success": True})
-    
-    if not event.password or event.password == data.get('password'):
-        return jsonify({"success": True})
-    
-    return jsonify({"success": False})
->>>>>>> cb26568d7621ff6746c3c76e5a8c15c17056bd5a
 
 if __name__ == '__main__':
     app.run(debug=True)
