@@ -12,6 +12,8 @@
         <h2>Регистрация</h2>
         {% if error %}
             <p style="color: #ff6200;">{{ error }}</p>
+        {% elif success %}
+            <p style="color: green;">{{ success }}</p>
         {% endif %}
         <form method="POST">
             <label>Имя пользователя:</label><br>

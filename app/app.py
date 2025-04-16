@@ -6,17 +6,29 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 import folium
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer
 
 app = Flask(__name__)
-app.secret_key = 'x7k9p2m4n6b8v0c1z3q5w8e9r2t4y6u'
+app.secret_key = '6jujmgkxze4png8ch3xg8r3052a01ia'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///events.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_USERNAME'] = 'tesamye.ifelse@gmail.com'
+app.config['MAIL_PASSWORD'] = 'dzfo lmul vkkv yymx'
+app.config['MAIL_DEFAULT_SENDER'] = 'tesamye.ifelse@gmail.com'
+app.config['SECRET_KEY'] = '6jujmgkxze4png8ch3xg8r3052a01ia'
+app.config['SECURITY_PASSWORD_SALT'] = 'salt52n1o0jnv2omiv0kmn94aoaomm6sex5'
 Session(app)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
+mail = Mail(app)
+serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 # Модель пользователя
 class User(db.Model):
@@ -43,6 +55,8 @@ class User(db.Model):
         backref=db.backref('user', lazy='joined'),
         lazy='dynamic'
     )
+    email_confirmed = db.Column(db.Boolean, default=False)
+    email_confirmed_on = db.Column(db.DateTime, nullable=True)
 
 # Модель тега
 class Tag(db.Model):
@@ -94,11 +108,24 @@ with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='participant1').first():
         hashed_pwd = bcrypt.generate_password_hash('pass123').decode('utf-8')
-        user1 = User(username='participant1', email='participant1@example.com', password=hashed_pwd, role='participant')
+        user1 = User(
+            username='participant1', 
+            email='participant1@example.com', 
+            password=hashed_pwd, 
+            role='participant',
+            email_confirmed=True
+        )
         db.session.add(user1)
+    
     if not User.query.filter_by(username='organizer1').first():
         hashed_pwd = bcrypt.generate_password_hash('org456').decode('utf-8')
-        user2 = User(username='organizer1', email='organizer1@example.com', password=hashed_pwd, role='organizer')
+        user2 = User(
+            username='organizer1', 
+            email='organizer1@example.com', 
+            password=hashed_pwd, 
+            role='organizer',
+            email_confirmed=True
+        )
         db.session.add(user2)
     
     if not Tag.query.first():
@@ -198,10 +225,15 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
+        
         if user and bcrypt.check_password_hash(user.password, password):
+            if not user.email_confirmed:
+                return render_template('login.html', error="Пожалуйста, подтвердите ваш email перед входом.")
+            
             session['username'] = username
             session['role'] = user.role
             return redirect(url_for('home'))
+        
         return render_template('login.html', error="Неверный логин или пароль")
     return render_template('login.html', error=None)
 
@@ -227,13 +259,29 @@ def register():
             return render_template('register.html', error="Этот email уже зарегистрирован")
         
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        user = User(username=username, email=email, password=hashed_password, role=role)
+        user = User(
+            username=username, 
+            email=email, 
+            password=hashed_password, 
+            role=role,
+            email_confirmed=False
+        )
         db.session.add(user)
         db.session.commit()
         
-        session['username'] = username
-        session['role'] = role
-        return redirect(url_for('home'))
+        # Отправка письма с подтверждением
+        token = serializer.dumps(email, salt=app.config['SECURITY_PASSWORD_SALT'])
+        confirm_url = url_for('confirm_email', token=token, _external=True)
+        
+        msg = Message(
+            'Подтвердите ваш email',
+            recipients=[email],
+            html=render_template('email_confirmation.html', confirm_url=confirm_url)
+        )
+        mail.send(msg)
+        
+        return render_template('register.html', 
+                             success="Регистрация почти завершена! Пожалуйста, проверьте вашу почту для подтверждения email.")
     
     return render_template('register.html', error=None)
 
@@ -299,6 +347,33 @@ def add_event():
     
     return render_template('add_event.html', tags=tags)
 
+# страница подтверждения почты
+@app.route('/confirm/<token>')
+def confirm_email(token):
+    try:
+        email = serializer.loads(
+            token,
+            salt=app.config['SECURITY_PASSWORD_SALT'],
+            max_age=3600  # Токен действителен 1 час
+        )
+    except:
+        return render_template('email_confirmation.html', error="Ссылка подтверждения недействительна или срок ее действия истек.")
+    
+    user = User.query.filter_by(email=email).first_or_404()
+    
+    if user.email_confirmed:
+        return render_template('email_confirmation.html', message="Email уже подтвержден.")
+    else:
+        user.email_confirmed = True
+        user.email_confirmed_on = datetime.utcnow()
+        db.session.commit()
+        
+        # Автоматический вход после подтверждения
+        session['username'] = user.username
+        session['role'] = user.role
+        
+        return render_template('email_confirmation.html', 
+                             success="Ваш email успешно подтвержден! Теперь вы можете пользоваться всеми возможностями сайта.")
 
 # Страница карты
 @app.route('/map', methods=['GET'])
