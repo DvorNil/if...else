@@ -134,10 +134,13 @@ body {
     width: 24px;
     height: 24px;
     z-index: 100;
-    pointer-events: none;
-    display: none;
+    /*pointer-events: none;*/
+    /*display: box;*/
 }
 
+.post-status-icon.active {
+    display: block !important; /* Только активные иконки показываем */
+}
 
 .tags {
     font-size: 0.9em;

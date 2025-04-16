@@ -77,7 +77,7 @@ function showModal(eventId, title, description, location, tags, eventType, addre
         })
         .catch(error => {
             console.error('Ошибка получения статуса:', error);
-            statusIcon.style.display = 'none';
+            //statusIcon.style.display = 'none';
         });
 
 
@@ -131,12 +131,8 @@ function showModal(eventId, title, description, location, tags, eventType, addre
                     const postEventId = getEventIdFromPost(post);
                     if (postEventId === eventId) {
                         const postIcon = post.querySelector('.post-status-icon');
-                        if (data.status === 'none') {
-                            postIcon.style.display = 'none';
-                        } else {
-                            postIcon.src = `/static/images/${data.status}Mini.png`;
-                            postIcon.style.display = 'block';
-                        }
+                        postIcon.src = `/static/images/${data.status}Mini.png`;
+                        postIcon.style.display = 'block';
                     }
                 });
             }
@@ -208,25 +204,28 @@ function filterPosts(type, value) {
 }
 
 function loadPostStatusIcons() {
-    //if (!document.cookie.includes('session=')) return;
     fetch('/get_all_events_status')
         .then(response => response.json())
         .then(statuses => {
             document.querySelectorAll('.post').forEach(post => {
                 const eventId = getEventIdFromPost(post);
                 const icon = post.querySelector('.post-status-icon');
-                if (statuses[eventId.toString()]) {  alert("2"); //Почему-то alert 2 никогда не вызывается
-                    icon.style.cssText = ` /* Принудительное обновление стилей */
-                        display: block !important;
-                        background-image: url(/static/images/${statuses[eventId]}Mini.png);
-                        background-size: cover;
-                    `;
+                
+                // Сброс к состоянию по умолчанию
+                icon.style.display = 'none';
+                icon.src = '/static/images/nullMini.png';
+
+                if (eventId !== null && statuses[eventId]) {
+                    icon.style.display = 'block';
+                    icon.src = `/static/images/${statuses[eventId]}Mini.png`;
                 }
             });
         });
 }
+
 function getEventIdFromPost(post) {
     const onclickText = post.getAttribute('onclick');
-    const match = onclickText.match(/showModal\((\d+),/);
-    return match ? parseInt(match[1]) : null;
+    if (!onclickText) return null;
+    const match = onclickText.match(/showModal\(\s*(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
 }
