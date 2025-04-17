@@ -23,7 +23,21 @@
             <summary>Посещенные мероприятия</summary>
             <div class="posts-container">
                 {% for post in attended_events %}
-                <div class="post">
+                <div class="post" 
+                data-event-id="{{ post.id }}"
+                data-title="{{ post.title | escape }}"
+                data-description="{{ post.description | escape }}"
+                data-location-name="{{ post.location_name | escape if post.location_name else '' }}"
+                data-tags="{{ post.tags|map(attribute='name')|join(', ') | escape }}"
+                data-event-type="{{ post.event_type | escape }}"
+                data-location-address="{{ post.location_address | escape if post.location_address else '' }}"
+                data-lat="{{ post.lat | default(0) }}"
+                data-lng="{{ post.lng | default(0) }}"
+                data-image-url="{{ post.image_url | default('', true) | escape }}"
+                data-is-private="{{ 'true' if post.is_private else 'false' }}"
+                data-format="{{ post.format }}"
+                data-online-info="{{ post.online_info | escape if post.online_info else '' }}"
+                onclick="handlePostClick(this)">
                     <img class="post-image" 
                          src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 
                          alt="{{ post.title }}"
@@ -51,7 +65,21 @@
             <summary>Мероприятия в планах</summary>
             <div class="posts-container">
                 {% for post in planned_events %}
-                <div class="post">
+                <div class="post" 
+                data-event-id="{{ post.id }}"
+                data-title="{{ post.title | escape }}"
+                data-description="{{ post.description | escape }}"
+                data-location-name="{{ post.location_name | escape if post.location_name else '' }}"
+                data-tags="{{ post.tags|map(attribute='name')|join(', ') | escape }}"
+                data-event-type="{{ post.event_type | escape }}"
+                data-location-address="{{ post.location_address | escape if post.location_address else '' }}"
+                data-lat="{{ post.lat | default(0) }}"
+                data-lng="{{ post.lng | default(0) }}"
+                data-image-url="{{ post.image_url | default('', true) | escape }}"
+                data-is-private="{{ 'true' if post.is_private else 'false' }}"
+                data-format="{{ post.format }}"
+                data-online-info="{{ post.online_info | escape if post.online_info else '' }}"
+                onclick="handlePostClick(this)">
                     <img class="post-image" 
                          src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 
                          alt="{{ post.title }}"
@@ -74,5 +102,10 @@
             </div>
         </details>
     </div>
+
+    {% include 'modal.html' %}
+    
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

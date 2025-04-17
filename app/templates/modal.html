@@ -1,0 +1,46 @@
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <img id="status-icon" class="status-icon" src="" alt="Status Icon">
+        
+        <div id="password-prompt" style="display: none;">
+            <h2>Это приватное мероприятие</h2>
+            <p>Введите пароль для доступа:</p>
+            <input type="password" id="event-password" class="search-input">
+            <button onclick="checkEventPassword()" class="menu-btn">Продолжить</button>
+        </div>
+        
+        <!-- Основное содержимое -->
+        <div id="event-content">
+            <span class="close-btn" onclick="hideModal()">×</span>
+            <img id="modal-image" class="modal-image" src="" alt="Изображение мероприятия">
+            
+            <div class="modal-details">
+                <h2 id="modal-title"></h2>
+                <p id="modal-description"></p>
+                
+                <!-- Для офлайн мероприятий -->
+                <div id="location-info">
+                    <p><strong>Место проведения:</strong> <span id="modal-location-name"></span></p>
+                    <p><strong>Адрес:</strong> <span id="modal-location-address"></span></p>
+                </div>
+                
+                <!-- Для онлайн мероприятий -->
+                <div id="online-info" style="display: none;">
+                    <p><strong>Информация для подключения:</strong> <span id="modal-online-info"></span></p>
+                </div>
+                
+                <p><strong>Теги:</strong> <span id="modal-tags"></span></p>
+                <p><strong>Тип мероприятия:</strong> <span id="modal-event-type"></span></p>
+                <div id="modal-map" class="modal-map"></div>
+            </div>
+            
+            <div class="status-controls">
+                <input type="hidden" id="event-id" value="">
+                <button class="status-btn" data-status="planned">В планах</button>
+                <button class="status-btn" data-status="attended">Посещено</button>
+                <button class="status-btn reset-btn" data-status="none">Сбросить</button>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="modal-event-data" value="">
+</div>

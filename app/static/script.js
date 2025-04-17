@@ -3,6 +3,10 @@ let timeoutId;
 const userContainer = document.getElementById('userContainer');
 const userMenu = document.getElementById('userMenu');
 
+
+// Глобальная переменная для хранения данных о текущем мероприятии
+let currentEventData = null;
+
 userContainer.addEventListener('mouseenter', function() {
     clearTimeout(timeoutId);
     userMenu.classList.add('visible');
@@ -28,9 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPostStatusIcons();
 });
 
-// Глобальная переменная для хранения данных о текущем мероприятии
-let currentEventData = null;
-
 function handlePostClick(element) {
     const eventData = {
         eventId: element.dataset.eventId,
@@ -54,6 +55,98 @@ function handlePostClick(element) {
 function showModal(eventData) {
     currentEventData = eventData;
     
+    eventId = currentEventData.eventId;
+
+    const statusIcon = document.getElementById('status-icon');
+
+    document.getElementById('modal').style.display = 'block';
+    
+    if (!statusIcon) {
+        console.error('Элемент с id="status-icon" не найден!');
+        return;
+    }
+
+    fetch(`/get_event_status?event_id=${eventId}`)
+        .then(response => {
+            if (!response.ok) throw new Error('Ошибка сети');
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'planned') {
+                statusIcon.src = '/static/images/plannedMini.png';
+                statusIcon.style.display = 'block';
+            } else if (data.status === 'attended') {
+                statusIcon.src = '/static/images/attendedMini.png';
+                statusIcon.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка получения статуса:', error);
+            //statusIcon.style.display = 'none';
+        });
+
+    const statusControls = document.querySelector('.status-controls');
+    const newControls = statusControls.cloneNode(true);
+    statusControls.parentNode.replaceChild(newControls, statusControls);
+
+    // Обработчик кликов (объявлен внутри showModal)
+    const handleStatusClick = async (e) => {
+        const button = e.target.closest('.status-btn');
+        if (!button) return;
+    
+        try {
+            const response = await fetch('/update_event_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    status: button.dataset.status
+                })
+            });
+    
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Ошибка сервера');
+            }
+    
+            const data = await response.json();
+            if (data.success) {
+                // Обновляем иконку в модалке
+                const statusIcon = document.getElementById('status-icon');
+                if (data.status === 'planned') {
+                    statusIcon.src = '/static/images/plannedMini.png';
+                    statusIcon.style.display = 'block';
+                } else if (data.status === 'attended') {
+                    statusIcon.src = '/static/images/attendedMini.png';
+                    statusIcon.style.display = 'block';
+                } else {
+                    statusIcon.style.display = 'none';
+                }
+                // Обновляем иконку в посте
+                const posts = document.querySelectorAll('.post');
+                posts.forEach(post => {
+                    const postEventId = getEventIdFromPost(post);
+                    if (postEventId == eventId) {
+                        const postIcon = post.querySelector('.post-status-icon');
+                        postIcon.src = `/static/images/${data.status}Mini.png`;
+                        postIcon.style.display = 'block';
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert(error.message || 'Ошибка обновления статуса');
+        }
+    };
+    // Добавляем обработчик на новый контейнер
+    newControls.addEventListener('click', handleStatusClick);
+
+
+
+
     if (eventData.isPrivate && !checkAccess(eventData.eventId)) {
         showPasswordPrompt();
     } else {
@@ -153,7 +246,7 @@ function showEventContent() {
     document.getElementById('event-content').style.display = 'block';
 }
 
-function loadEventStatus(eventId) {
+function loadEventStatus(eventId) { //функция вообще не применяется
     fetch(`/get_event_status?event_id=${eventId}`)
         .then(response => response.json())
         .then(data => {
@@ -174,10 +267,26 @@ function checkAccess(eventId) {
     return localStorage.getItem(`event_${eventId}_access`) === 'granted';
 }
 
+
+
+
 function hideModal() {
+    const modalImg = document.getElementById('modal-image');
+    const statusIcon = document.getElementById('status-icon');
+    
+   // modalImg.src = '/static/images/no-image.jpg';
+    statusIcon.style.display = 'none'; // Скрываем иконку при закрытии
     document.getElementById('modal').style.display = 'none';
     currentEventData = null;
 }
+
+window.onclick = function(event) {
+    const modal = document.getElementById('modal');
+    if (event.target == modal) {
+        hideModal();
+    }
+}
+
 
 function filterPosts(filterType, value) {
     const url = new URL(window.location);
@@ -202,14 +311,10 @@ function loadPostStatusIcons() {
         .then(response => response.json())
         .then(statuses => {
             document.querySelectorAll('.post').forEach(post => {
-                const onclickText = post.getAttribute('onclick');
-                const eventIdMatch = onclickText.match(/showModal\((\d+),/);
-                if (!eventIdMatch) return;
-                
-                const eventId = eventIdMatch[1];
+                const eventId = post.dataset.eventId; // Получаем ID из data-атрибута
                 const icon = post.querySelector('.post-status-icon');
                 
-                if (statuses[eventId]) {
+                if (eventId && statuses[eventId]) {
                     icon.style.display = 'block';
                     icon.src = `/static/images/${statuses[eventId]}Mini.png`;
                 }
@@ -219,9 +324,5 @@ function loadPostStatusIcons() {
 
 function getEventIdFromPost(post) {
     if (!post) return null;
-    const onclickText = post.getAttribute('onclick');
-    if (!onclickText) return null;
-    
-    const match = onclickText.match(/showModal\((\d+),/);
-    return match ? parseInt(match[1]) : null;
+    return parseInt(post.dataset.eventId) || null;
 }
