@@ -3,6 +3,8 @@ let timeoutId;
 const userContainer = document.getElementById('userContainer');
 const userMenu = document.getElementById('userMenu');
 
+const statusIcon = document.getElementById('status-icon');
+
 userContainer.addEventListener('mouseenter', function() {
     clearTimeout(timeoutId);
     userMenu.classList.add('visible');
@@ -143,7 +145,10 @@ function showEventContent() {
 
 function loadEventStatus(eventId) {
     fetch(`/get_event_status?event_id=${eventId}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Ошибка сети');
+            return response.json();
+        })
         .then(data => {
             const statusIcon = document.getElementById('status-icon');
             if (data.status === 'planned') {
@@ -202,7 +207,90 @@ function loadPostStatusIcons() {
                 }
             });
         });
+        const statusControls = document.querySelector('.status-controls');
+        const newControls = statusControls.cloneNode(true);
+        statusControls.parentNode.replaceChild(newControls, statusControls);
+    
+        // Обработчик кликов (объявлен внутри showModal)
+        const handleStatusClick = async (e) => {
+            const button = e.target.closest('.status-btn');
+            if (!button) return;
+        
+            try {
+                const response = await fetch('/update_event_status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        event_id: currentEventData.eventId,
+                        status: button.dataset.status
+                    })
+                });
+        
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Ошибка сервера');
+                }
+        
+                const data = await response.json();
+                if (data.success) {
+                    // Обновляем иконку в модалке
+                    const statusIcon = document.getElementById('status-icon');
+                    if (data.status === 'planned') {
+                        statusIcon.src = '/static/images/plannedMini.png';
+                        statusIcon.style.display = 'block';
+                    } else if (data.status === 'attended') {
+                        statusIcon.src = '/static/images/attendedMini.png';
+                        statusIcon.style.display = 'block';
+                    } else {
+                        statusIcon.style.display = 'none';
+                    }
+        
+                    // Обновляем иконку в посте
+                    const posts = document.querySelectorAll('.post');
+                    posts.forEach(post => {
+                        const postEventId = getEventIdFromPost(post);
+                        if (postEventId === eventId) {
+                            const postIcon = post.querySelector('.post-status-icon');
+                            if (data.status === 'none') {
+                                postIcon.style.display = 'none';
+                            } else {
+                                postIcon.src = `/static/images/${data.status}Mini.png`;
+                                postIcon.style.display = 'block';
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Ошибка обновления статуса');
+            }
+        };
+        // Добавляем обработчик на новый контейнер
+        newControls.addEventListener('click', handleStatusClick);
+    
+        // Генерация карты
+        if (typeof lat === 'number' && typeof lng === 'number') {
+            fetch(`/generate_map?lat=${lat}&lng=${lng}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Ошибка генерации карты');
+                    return response.text();
+                })
+                .then(html => {
+                    document.getElementById('modal-map').innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Map fetch error:', error);
+                    document.getElementById('modal-map').innerHTML = '<p>Карта недоступна</p>';
+                });
+        } else {
+            document.getElementById('modal-map').innerHTML = '<p>Координаты невалидны</p>';
+            }
 }
+
+
 function getEventIdFromPost(post) {
     const onclickText = post.getAttribute('onclick');
     const match = onclickText.match(/showModal\((\d+),/);
