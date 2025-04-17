@@ -31,20 +31,30 @@ document.addEventListener('DOMContentLoaded', () => {
 // Глобальная переменная для хранения данных о текущем мероприятии
 let currentEventData = null;
 
-function showModal(eventId, title, description, locationName, tags, eventType, 
-                  locationAddress, lat, lng, imageUrl, isPrivate, format, onlineInfo) {
-    
-    // Сохраняем все данные мероприятия в объект
-    currentEventData = {
-        eventId, title, description, locationName, tags, eventType,
-        locationAddress, lat, lng, imageUrl, isPrivate, format, onlineInfo
+function handlePostClick(element) {
+    const eventData = {
+        eventId: element.dataset.eventId,
+        title: element.dataset.title,
+        description: element.dataset.description,
+        locationName: element.dataset.locationName,
+        tags: element.dataset.tags,
+        eventType: element.dataset.eventType,
+        locationAddress: element.dataset.locationAddress,
+        lat: parseFloat(element.dataset.lat) || 0,
+        lng: parseFloat(element.dataset.lng) || 0,
+        imageUrl: element.dataset.imageUrl,
+        isPrivate: element.dataset.isPrivate === 'true',
+        format: element.dataset.format,
+        onlineInfo: element.dataset.onlineInfo
     };
+
+    showModal(eventData);
+}
+
+function showModal(eventData) {
+    currentEventData = eventData;
     
-    // Сохраняем в скрытое поле (как JSON строку)
-    document.getElementById('modal-event-data').value = JSON.stringify(currentEventData);
-    
-    // Проверяем доступ для приватных мероприятий
-    if (isPrivate && !checkAccess(eventId)) {
+    if (eventData.isPrivate && !checkAccess(eventData.eventId)) {
         showPasswordPrompt();
     } else {
         showEventContent();
@@ -54,19 +64,19 @@ function showModal(eventId, title, description, locationName, tags, eventType,
 }
 
 function showPasswordPrompt() {
-    // Показываем только форму ввода пароля
     document.getElementById('password-prompt').style.display = 'block';
     document.getElementById('event-content').style.display = 'none';
     
-    // Устанавливаем только название и изображение
+    // Устанавливаем только заголовок и изображение
     document.getElementById('modal-title').textContent = currentEventData.title;
     
-    const modalImg = document.getElementById('modal-image');
-    modalImg.src = currentEventData.imageUrl 
-        ? (currentEventData.imageUrl.startsWith('http') 
-            ? currentEventData.imageUrl 
-            : `/static/${currentEventData.imageUrl}`)
+    const img = document.getElementById('modal-image');
+    img.src = currentEventData.imageUrl 
+        ? `/static/${currentEventData.imageUrl}`
         : '/static/images/no-image.jpg';
+    img.onerror = function() {
+        this.src = '/static/images/no-image.jpg';
+    };
 }
 
 function checkEventPassword() {
@@ -94,51 +104,53 @@ function checkEventPassword() {
 }
 
 function showEventContent() {
-    // Скрываем форму ввода пароля
-    document.getElementById('password-prompt').style.display = 'none';
-    document.getElementById('event-content').style.display = 'block';
-    
-    // Заполняем все данные
     const e = currentEventData;
-    document.getElementById('event-id').value = e.eventId;
+    if (!e) return;
+
+    // Заполняем данные
     document.getElementById('modal-title').textContent = e.title;
     document.getElementById('modal-description').textContent = e.description;
     document.getElementById('modal-tags').textContent = e.tags;
     document.getElementById('modal-event-type').textContent = e.eventType;
+    document.getElementById('event-id').value = e.eventId;
 
-    // Устанавливаем изображение
-    const modalImg = document.getElementById('modal-image');
-    modalImg.src = e.imageUrl 
-        ? (e.imageUrl.startsWith('http') 
-            ? e.imageUrl 
-            : `/static/${e.imageUrl}`)
-        : '/static/images/no-image.jpg';
+    // Изображение
+    const img = document.getElementById('modal-image');
+    img.src = e.imageUrl ? `/static/${e.imageUrl}` : '/static/images/no-image.jpg';
+    img.onerror = function() {
+        this.src = '/static/images/no-image.jpg';
+    };
 
-    // Показываем соответствующие поля для формата
+    // Формат мероприятия
     if (e.format === 'online') {
         document.getElementById('location-info').style.display = 'none';
         document.getElementById('online-info').style.display = 'block';
-        document.getElementById('modal-online-info').textContent = e.onlineInfo || 'Информация не указана';
+        document.getElementById('modal-online-info').textContent = e.onlineInfo;
     } else {
         document.getElementById('location-info').style.display = 'block';
         document.getElementById('online-info').style.display = 'none';
-        document.getElementById('modal-location-name').textContent = e.locationName || 'Не указано';
-        document.getElementById('modal-location-address').textContent = e.locationAddress || 'Не указан';
+        document.getElementById('modal-location-name').textContent = e.locationName || "Не указано";
+        document.getElementById('modal-location-address').textContent = e.locationAddress || "Не указан";
+        
+        // Карта
+        if (e.lat && e.lng) {
+            fetch(`/generate_map?lat=${e.lat}&lng=${e.lng}`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('modal-map').innerHTML = html;
+                })
+                .catch(err => {
+                    console.error("Ошибка загрузки карты:", err);
+                    document.getElementById('modal-map').innerHTML = "<p>Карта недоступна</p>";
+                });
+        } else {
+            document.getElementById('modal-map').innerHTML = "";
+        }
     }
 
-    // Генерация карты (только для офлайн мероприятий)
-    if (e.format === 'offline' && e.lat && e.lng) {
-        fetch(`/generate_map?lat=${e.lat}&lng=${e.lng}`)
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('modal-map').innerHTML = html;
-            });
-    } else {
-        document.getElementById('modal-map').innerHTML = '';
-    }
-    
-    // Загрузка статуса мероприятия
-    loadEventStatus(e.eventId);
+    // Скрываем форму пароля
+    document.getElementById('password-prompt').style.display = 'none';
+    document.getElementById('event-content').style.display = 'block';
 }
 
 function loadEventStatus(eventId) {
@@ -186,25 +198,30 @@ function filterPosts(type, value) {
 }
 
 function loadPostStatusIcons() {
-    //if (!document.cookie.includes('session=')) return;
     fetch('/get_all_events_status')
         .then(response => response.json())
         .then(statuses => {
             document.querySelectorAll('.post').forEach(post => {
-                const eventId = getEventIdFromPost(post);
+                const onclickText = post.getAttribute('onclick');
+                const eventIdMatch = onclickText.match(/showModal\((\d+),/);
+                if (!eventIdMatch) return;
+                
+                const eventId = eventIdMatch[1];
                 const icon = post.querySelector('.post-status-icon');
-                if (statuses[eventId.toString()]) {  alert("2"); //Почему-то alert 2 никогда не вызывается
-                    icon.style.cssText = ` /* Принудительное обновление стилей */
-                        display: block !important;
-                        background-image: url(/static/images/${statuses[eventId]}Mini.png);
-                        background-size: cover;
-                    `;
+                
+                if (statuses[eventId]) {
+                    icon.style.display = 'block';
+                    icon.src = `/static/images/${statuses[eventId]}Mini.png`;
                 }
             });
         });
 }
+
 function getEventIdFromPost(post) {
+    if (!post) return null;
     const onclickText = post.getAttribute('onclick');
+    if (!onclickText) return null;
+    
     const match = onclickText.match(/showModal\((\d+),/);
     return match ? parseInt(match[1]) : null;
 }

@@ -46,21 +46,21 @@
 
     <div class="posts-container">
         {% for post in posts %}
-            <div class="post" onclick="showModal(
-                {{ post.id }}, 
-                '{{ post.title | escape }}', 
-                '{{ post.description | escape }}', 
-                '{{ post.location_name | escape if post.location_name else '' }}', 
-                '{{ post.tags|map(attribute='name')|join(', ') | escape }}', 
-                '{{ post.event_type | escape }}', 
-                '{{ post.location_address | escape if post.location_address else '' }}',
-                {{ post.lat | default(0) }},
-                {{ post.lng | default(0) }},
-                '{{ post.image_url | default('', true) | escape }}',
-                {{ 'true' if post.is_private else 'false' }},
-                '{{ post.format }}',
-                '{{ post.online_info | escape if post.online_info else '' }}'
-            )">
+            <div class="post" 
+                 data-event-id="{{ post.id }}"
+                 data-title="{{ post.title | escape }}"
+                 data-description="{{ post.description | escape }}"
+                 data-location-name="{{ post.location_name | escape if post.location_name else '' }}"
+                 data-tags="{{ post.tags|map(attribute='name')|join(', ') | escape }}"
+                 data-event-type="{{ post.event_type | escape }}"
+                 data-location-address="{{ post.location_address | escape if post.location_address else '' }}"
+                 data-lat="{{ post.lat | default(0) }}"
+                 data-lng="{{ post.lng | default(0) }}"
+                 data-image-url="{{ post.image_url | default('', true) | escape }}"
+                 data-is-private="{{ 'true' if post.is_private else 'false' }}"
+                 data-format="{{ post.format }}"
+                 data-online-info="{{ post.online_info | escape if post.online_info else '' }}"
+                 onclick="handlePostClick(this)">
             {% if post.is_private %}
                 <div class="private-badge">Приватное</div>
             {% endif %}
