@@ -208,7 +208,8 @@ def home():
             (Event.title.ilike(f'%{search_query}%')) | 
             (Event.description.ilike(f'%{search_query}%')) | 
             (Event.event_type.ilike(f'%{search_query}%')) | 
-            (Event.location.ilike(f'%{search_query}%')) |
+            (Event.location_name.ilike(f'%{search_query}%')) |
+            (Event.location_address.ilike(f'%{search_query}%')) |
             (Event.tags.any(Tag.name.ilike(f'%{search_query}%')))
         )
     
@@ -447,7 +448,7 @@ def show_map():
         if event.lat and event.lng:
             folium.Marker(
                 [event.lat, event.lng],
-                popup=f"{event.title}<br>{event.location}"
+                popup=f"{event.title}<br>{event.location_name}<br>{event.location_address}"  # Исправлено
             ).add_to(m)
     map_html = m._repr_html_()
     return render_template('map.html', map_html=map_html)
