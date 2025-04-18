@@ -1,0 +1,41 @@
+<div class="post" 
+                 data-event-id="{{ post.id }}"
+                 data-title="{{ post.title | escape }}"
+                 data-description="{{ post.description | escape }}"
+                 data-location-name="{{ post.location_name | escape if post.location_name else '' }}"
+                 data-tags="{{ post.tags|map(attribute='name')|join(', ') | escape }}"
+                 data-event-type="{{ post.event_type | escape }}"
+                 data-location-address="{{ post.location_address | escape if post.location_address else '' }}"
+                 data-lat="{{ post.lat | default(0) }}"
+                 data-lng="{{ post.lng | default(0) }}"
+                 data-image-url="{{ post.image_url | default('', true) | escape }}"
+                 data-is-private="{{ 'true' if post.is_private else 'false' }}"
+                 data-format="{{ post.format }}"
+                 data-online-info="{{ post.online_info | escape if post.online_info else '' }}"
+                 data-date-time="{{ post.date_time.strftime('%Y-%m-%dT%H:%M:%S') }}" 
+                 data-duration="{{ post.duration }}"
+                 data-organizer-username="{{ post.organizer.username }}"
+                 onclick="handlePostClick(this)">
+            {% if post.is_private %}
+                <div class="private-badge">Приватное</div>
+            {% endif %}
+            <img class="post-status-icon" 
+                src="/static/images/nullMini.png" 
+                alt="Status" 
+                style="display: none;">
+                <img class="post-image" 
+                    src="{{ url_for('static', filename=post.image_url) if post.image_url else url_for('static', filename='images/no-image.jpg') }}" 
+                    alt="{{ post.title }}"
+                    onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
+                <div class="post-content">
+                    <h3>{{ post.title }}</h3>
+                    <p>{{ post.description|truncate(100) }}</p>
+                    <p class="tags">Теги: 
+                        {% for tag in post.tags %}
+                            <span class="tag">{{ tag.name }}</span>
+                        {% endfor %}
+                    </p>
+                    <p>Тип мероприятия: {{ post.event_type }}</p>
+                    <p>Адрес: {{ post.location }}</p>
+                </div>
+            </div>

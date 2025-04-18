@@ -12,7 +12,7 @@
         <!-- Основное содержимое -->
         <div id="event-content">
             <span class="close-btn" onclick="hideModal()">×</span>
-            <img id="modal-image" class="modal-image" src="" alt="Изображение мероприятия">
+            <img id="modal-image" class="modal-image" src="" alt="Изображение мероприятия" style="cursor: pointer">
             
             <div class="modal-details">
                 <h2 id="modal-title"></h2>
@@ -31,6 +31,10 @@
                 
                 <p><strong>Теги:</strong> <span id="modal-tags"></span></p>
                 <p><strong>Тип мероприятия:</strong> <span id="modal-event-type"></span></p>
+                <p><strong>Дата:</strong> <span id="modal-date"></span></p>
+                <p><strong>Продолжительность:</strong> <span id="modal-duration"></span></p>
+                <p><strong>Формат:</strong> <span id="modal-format"></span></p>
+                <p><strong>Организатор:</strong> <span id="modal-organizer"></span></p>
                 <div id="modal-map" class="modal-map"></div>
             </div>
             
@@ -43,4 +47,11 @@
         </div>
     </div>
     <input type="hidden" id="modal-event-data" value="">
+</div>
+
+<div id="image-modal" class="image-modal">
+    <div class="image-container">
+        <span class="image-close-btn" onclick="hideImageModal()">×</span>
+        <img id="full-size-image" class="full-size-image" src="" alt="Увеличенное изображение">
+    </div>
 </div>

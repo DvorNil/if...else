@@ -7,6 +7,11 @@ const userMenu = document.getElementById('userMenu');
 // Глобальная переменная для хранения данных о текущем мероприятии
 let currentEventData = null;
 
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadPostStatusIcons();
+});
+
 userContainer.addEventListener('mouseenter', function() {
     clearTimeout(timeoutId);
     userMenu.classList.add('visible');
@@ -28,10 +33,6 @@ userMenu.addEventListener('mouseleave', function() {
     }, 300);
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadPostStatusIcons();
-});
-
 function handlePostClick(element) {
     const eventData = {
         eventId: element.dataset.eventId,
@@ -46,7 +47,10 @@ function handlePostClick(element) {
         imageUrl: element.dataset.imageUrl,
         isPrivate: element.dataset.isPrivate === 'true',
         format: element.dataset.format,
-        onlineInfo: element.dataset.onlineInfo
+        onlineInfo: element.dataset.onlineInfo,
+        dateTime: element.dataset.dateTime, 
+        duration: parseInt(element.dataset.duration) || 0,
+        organizerUsername: element.dataset.organizerUsername
     };
 
     showModal(eventData);
@@ -207,12 +211,39 @@ function showEventContent() {
     document.getElementById('modal-event-type').textContent = e.eventType;
     document.getElementById('event-id').value = e.eventId;
 
+    const dateOptions = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    const formattedDate = new Date(e.dateTime).toLocaleDateString('ru-RU', dateOptions);
+    document.getElementById('modal-date').textContent = formattedDate;
+
+    // Преобразование продолжительности (минуты → часы + минуты)
+    const hours = Math.floor(e.duration / 60);
+    const minutes = e.duration % 60;
+    document.getElementById('modal-duration').textContent = `${hours} ч ${minutes} мин`;
+
+    // Формат мероприятия
+    document.getElementById('modal-format').textContent = e.format === 'online' ? 'Онлайн' : 'Офлайн';
+
+    // Организатор
+    document.getElementById('modal-organizer').textContent = e.organizerUsername || "Не указан";
+
     // Изображение
     const img = document.getElementById('modal-image');
     img.src = e.imageUrl ? `/static/${e.imageUrl}` : '/static/images/no-image.jpg';
     img.onerror = function() {
         this.src = '/static/images/no-image.jpg';
     };
+
+    document.getElementById('modal-image').addEventListener('click', function(e) {
+        e.stopPropagation();
+        showImageModal(this.src);
+    });
 
     // Формат мероприятия
     if (e.format === 'online') {
@@ -267,7 +298,24 @@ function checkAccess(eventId) {
     return localStorage.getItem(`event_${eventId}_access`) === 'granted';
 }
 
+// Новые функции для управления модалкой изображения
+function showImageModal(src) {
+    const modal = document.getElementById('image-modal');
+    const img = document.getElementById('full-size-image');
+    img.src = src;
+    modal.style.display = 'flex';
+}
 
+function hideImageModal() {
+    document.getElementById('image-modal').style.display = 'none';
+}
+
+// Закрытие по клику вне изображения
+document.getElementById('image-modal').addEventListener('click', function(e) {
+    if(e.target === this || e.target.classList.contains('image-container')) {
+        hideImageModal();
+    }
+})
 
 
 function hideModal() {

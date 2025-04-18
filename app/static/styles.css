@@ -120,6 +120,8 @@ body {
     width: 50%;
     height: 200px;
     object-fit: cover;
+    position: sticky; /* Фиксируем изображение при скролле */
+    top: 0;
 }
 
 .post-content {
@@ -178,6 +180,10 @@ body {
     gap: 20px;
     padding-bottom: 70px;
     position: relative;
+
+    margin: 20px auto;  /* Центрирование */
+    overflow-y: auto;   /* Вертикальный скролл при необходимости */
+    max-height: 80vh;  /* Ограничение высоты */
 }
 
 .modal-image {
@@ -187,13 +193,24 @@ body {
 }
 
 .modal-details {
-    width: 50%;
+    padding-right: 15px;
+    width: 70%;
 }
 
 .modal-map {
     width: 100%;
     height: 220px;
     margin-top: 20px;
+}
+
+#event-content {
+    display: flex; /* Гибкое расположение элементов */
+    gap: 30px; /* Пространство между изображением и деталями */
+}
+
+.modal-details p {
+    margin: 12px 0; /* Улучшаем читаемость текста */
+    line-height: 1.5; /* Межстрочный интервал */
 }
 
 .close-btn {
@@ -317,4 +334,71 @@ body {
 #password-prompt input {
     margin: 10px 0;
     width: 80%;
+}
+
+.event-meta {
+    margin: 15px 0;
+    padding: 15px;
+    background: rgba(255, 98, 0, 0.05);
+    border-radius: 8px;
+}
+
+.event-meta p {
+    margin: 8px 0;
+    font-size: 0.95em;
+    color: #ff914d;
+}
+
+.event-meta strong {
+    color: #ffffff;
+    min-width: 120px;
+    display: inline-block;
+}
+
+.image-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.image-container {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    padding: 15px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.full-size-image {
+    max-width: 80vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.image-close-btn {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    color: #ff6200;
+    font-size: 32px;
+    cursor: pointer;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
