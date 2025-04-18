@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Профиль {{ username }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+    </div>
+    
+    <div class="posts-container">
+        <h2>Профиль пользователя {{ username }}</h2>
+        
+        <div class="profile-info">
+            <p><strong>Никнейм:</strong> {{ username }}</p>
+            <p><strong>Роль:</strong> {{ role_display }}</p>
+            
+            {% if is_friend and not user.is_private %}
+                <p><strong>Почта:</strong> {{ email }}</p>
+                <div class="description-section">
+                    <p><strong>Описание:</strong></p>
+                    <p>{{ description or "Пользователь не добавил описание" }}</p>
+                </div>
+            {% else %}
+                <p class="warning">Вы не друзья с этим пользователем, либо пользователь имеет закрытый профиль</p>
+            {% endif %}
+        </div>
+
+        {% if show_events and is_friend and not user.is_private %}
+            <!-- Список запланированных мероприятий -->
+            <details class="events-section">
+                <summary>Запланированные мероприятия</summary>
+                <div class="posts-container">
+                    {% for event in planned_events %}
+                        {% with post=event %}
+                            {% include 'post.html' %}
+                        {% endwith %}
+                    {% else %}
+                        <p class="empty-message">Нет запланированных мероприятий</p>
+                    {% endfor %}
+                </div>
+            </details>
+
+            <!-- Список посещенных мероприятий -->
+            <details class="events-section">
+                <summary>Посещенные мероприятия</summary>
+                <div class="posts-container">
+                    {% for event in attended_events %}
+                        {% with post=event %}
+                            {% include 'post.html' %}
+                        {% endwith %}
+                    {% else %}
+                        <p class="empty-message">Нет запланированных мероприятий</p>
+                    {% endfor %}
+                </div>
+            </details>
+        {% else %}
+            <p class="warning">Информация о мероприятиях недоступна</p>
+        {% endif %}
+    </div>
+
+    {% include 'modal.html' %}
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

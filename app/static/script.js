@@ -1,5 +1,3 @@
-let timeoutId;
-
 const userContainer = document.getElementById('userContainer');
 const userMenu = document.getElementById('userMenu');
 
@@ -12,26 +10,32 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPostStatusIcons();
 });
 
-userContainer.addEventListener('mouseenter', function() {
-    clearTimeout(timeoutId);
-    userMenu.classList.add('visible');
-});
+if (userContainer && userMenu) {
+    let timeoutId; 
+    
+    userContainer.addEventListener('mouseenter', function() {
+        clearTimeout(timeoutId);
+        userMenu.classList.add('visible');
+    });
 
-userContainer.addEventListener('mouseleave', function() {
-    timeoutId = setTimeout(function() {
-        userMenu.classList.remove('visible');
-    }, 300);
-});
+    userContainer.addEventListener('mouseleave', function() {
+        timeoutId = setTimeout(() => {
+            userMenu.classList.remove('visible');
+        }, 300);
+    });
 
-userMenu.addEventListener('mouseenter', function() {
-    clearTimeout(timeoutId);
-});
+    userMenu.addEventListener('mouseenter', function() {
+        clearTimeout(timeoutId);
+    });
 
-userMenu.addEventListener('mouseleave', function() {
-    timeoutId = setTimeout(function() {
-        userMenu.classList.remove('visible');
-    }, 300);
-});
+    userMenu.addEventListener('mouseleave', function() {
+        timeoutId = setTimeout(() => {
+            userMenu.classList.remove('visible');
+        }, 300);
+    });
+} else {
+    console.log('User menu elements not found - skipping hover logic');
+}
 
 function handlePostClick(element) {
     const eventData = {
@@ -395,5 +399,174 @@ async function updateDescription(e) {
     } catch (error) {
         console.error('Ошибка:', error);
         alert(error.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const friendSearch = document.getElementById('friend-search');
+    const searchResults = document.getElementById('search-results');
+
+    if (!friendSearch || !searchResults) {
+        console.error('Один из элементов поиска не найден!');
+        return;
+    }
+
+    friendSearch.addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        fetch(`/search_users?q=${encodeURIComponent(query)}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Ошибка сети');
+                return response.json();
+            })
+            .then(users => {
+                searchResults.innerHTML = users.map(user => `
+                    <div class="user-result" data-user-id="${user.id}">
+                        <img src="${user.avatar}" class="user-avatar" alt="Аватар">
+                        <span>${user.username}</span>
+                        <button class="menu-btn add-friend-btn" 
+                                onclick="sendFriendRequest(${user.id}, this)">
+                            Добавить
+                        </button>
+                    </div>
+                `).join('');
+                searchResults.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                searchResults.style.display = 'none';
+            });
+    });
+});
+
+function sendFriendRequest(userId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Отправка...';
+    
+    fetch('/add_friend', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({friend_id: userId})
+    })
+    .then(response => {
+        if(response.ok) {
+            btn.textContent = 'Запрос отправлен!';
+        } else {
+            btn.textContent = 'Ошибка';
+            setTimeout(() => btn.remove(), 2000);
+        }
+    })
+    .catch(() => {
+        btn.textContent = 'Ошибка соединения';
+        setTimeout(() => btn.remove(), 2000);
+    });
+}
+
+function loadFriendRequests() {
+    const container = document.getElementById('friend-requests-list');
+    
+    // Проверка существования элемента
+    if (!container) {
+        console.error('Элемент friend-requests-list не найден!');
+        return;
+    }
+
+    fetch('/friend_requests')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(requests => {
+            // Проверка на пустой массив
+            if (!requests.length) {
+                container.innerHTML = '<p class="empty-message">Нет входящих запросов</p>';
+                return;
+            }
+
+            // Генерация HTML
+            container.innerHTML = requests.map(req => `
+                <div class="request-item" data-request-id="${req.id}">
+                    <span>${req.sender} (${new Date(req.created_at).toLocaleDateString()})</span>
+                    <div class="request-actions">
+                        <button class="menu-btn accept-btn" 
+                                onclick="handleFriendRequestResponse('${req.id}', 'accept')">
+                            Принять
+                        </button>
+                        <button class="menu-btn reject-btn" 
+                                onclick="handleFriendRequestResponse('${req.id}', 'reject')">
+                            Отклонить
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки запросов:', error);
+            container.innerHTML = '<p class="error-message">Ошибка загрузки данных</p>';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('friend-requests-list')) {
+        loadFriendRequests();
+    }
+});
+
+// Обработка ответа
+function handleFriendRequestResponse(requestId, action) {
+    fetch('/respond_friend_request', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            request_id: requestId,
+            action: action
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            loadFriendRequests(); // Обновляем список
+            alert(action === 'accept' ? 'Запрос принят!' : 'Запрос отклонен');
+        }
+    });
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+async function updatePrivacy(e) {
+    e.preventDefault();
+    const isPrivate = document.getElementById('privacy-checkbox').checked;
+    
+    try {
+        const response = await fetch('/update_privacy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ is_private: isPrivate })
+        });
+
+        if (response.ok) {
+            alert('Настройки приватности обновлены!');
+        } else {
+            alert('Ошибка сохранения');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Ошибка соединения');
     }
 }

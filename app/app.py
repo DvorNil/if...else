@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 import folium
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
+from sqlalchemy import func
 
 app = Flask(__name__)
 app.secret_key = '6jujmgkxze4png8ch3xg8r3052a01ia'
@@ -30,6 +31,13 @@ bcrypt = Bcrypt(app)
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
+ROLE_TRANSLATIONS = {
+    'participant': 'Участник',
+    'organizer': 'Организатор',
+    'admin': 'Администратор',
+    # Добавьте другие роли при необходимости
+}
+
 # Модель пользователя
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -40,6 +48,7 @@ class User(db.Model):
     email_confirmed = db.Column(db.Boolean, default=False)
     email_confirmed_on = db.Column(db.DateTime, nullable=True)
     description = db.Column(db.Text, nullable=True)
+    is_private = db.Column(db.Boolean, default=False, nullable=False)
 
     favorite_organizers = db.relationship(
         'User', 
@@ -59,6 +68,13 @@ class User(db.Model):
         backref=db.backref('user', lazy='joined'),
         lazy='dynamic'
     )
+
+    @property
+    def friends(self):
+        """Получить всех подтвержденных друзей"""
+        sent = [f.receiver for f in self.sent_requests if f.status == 'accepted']
+        received = [f.sender for f in self.received_requests if f.status == 'accepted']
+        return list(set(sent + received))
 
 # Модель тега
 class Tag(db.Model):
@@ -108,6 +124,20 @@ class UserEventStatus(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), primary_key=True)
     status = db.Column(db.Enum('planned', 'attended', name='event_status'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow) 
+
+# Модель друзей
+class Friendship(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    friend_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status = db.Column(db.Enum('pending', 'accepted', 'rejected', name='friendship_status'), default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Связи с пользователями
+    sender = db.relationship('User', foreign_keys=[user_id], backref='sent_requests')
+    receiver = db.relationship('User', foreign_keys=[friend_id], backref='received_requests')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Создание таблиц и добавление начальных данных
 with app.app_context():
@@ -706,15 +736,16 @@ def profile():
             elif status.status == 'attended':
                 attended_events.append(event)
 
-    role_in_text = {
-        'organizer': "Организатор",
-        'participant': "Участник"
-    }
+    role = ROLE_TRANSLATIONS.get(
+        user.role.lower(), 
+        user.role.capitalize()  # Для неизвестных ролей
+    )
 
     return render_template('profile.html',
+                         user=user,
                          username=user.username,
                          email=user.email,
-                         role=role_in_text.get(user.role, "Участник"),
+                         role=role,
                          attended_events=attended_events,
                          planned_events=planned_events,
                          description = user.description)
@@ -746,6 +777,174 @@ def update_description():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+
+# Маршрут поиска пользователей
+@app.route('/search_users')
+def search_users():
+    if 'username' not in session:
+        return jsonify([])
+    
+    search_query = request.args.get('q', '').strip()
+    current_user_id = User.query.filter_by(username=session['username']).first().id
+    
+    users = User.query.filter(
+        User.username.ilike(f'%{search_query}%'),
+        User.id != current_user_id
+    ).limit(10).all()
+    
+    return jsonify([{
+        'id': user.id,
+        'username': user.username,
+        'avatar': url_for('static', filename='images/user-circle.png')
+    } for user in users])
+
+# Маршрут добавления в друзья
+@app.route('/add_friend', methods=['POST'])
+def add_friend():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    friend_id = data.get('friend_id')
+    
+    user = User.query.filter_by(username=session['username']).first()
+    
+    try:
+        existing = Friendship.query.filter_by(
+            user_id=user.id,
+            friend_id=friend_id
+        ).first()
+        
+        if existing:
+            return jsonify({"error": "Запрос уже отправлен"}), 400
+            
+        friendship = Friendship(
+            user_id=user.id,
+            friend_id=friend_id,
+            status='pending'
+        )
+        db.session.add(friendship)
+        db.session.commit()
+        
+        return jsonify({"success": True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+
+@app.route('/friend_requests')
+def get_friend_requests():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    user = User.query.filter_by(username=session['username']).first()
+    requests = Friendship.query.filter_by(friend_id=user.id, status='pending').all()
+
+    return jsonify([{
+        "id": req.id,
+        "sender": req.sender.username,
+        "created_at": req.created_at.strftime("%d.%m.%Y %H:%M")
+    } for req in requests])
+
+# Ответ на запрос
+@app.route('/respond_friend_request', methods=['POST'])
+def respond_friend_request():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    request_id = data.get('request_id')
+    action = data.get('action')  # 'accept' или 'reject'
+
+    # Проверка прав
+    user = User.query.filter_by(username=session['username']).first()
+    friend_request = Friendship.query.get(request_id)
+
+    if not friend_request or friend_request.friend_id != user.id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    # Обновление статуса
+    if action == 'accept':
+        friend_request.status = 'accepted'
+    elif action == 'reject':
+        friend_request.status = 'rejected'
+    else:
+        return jsonify({"error": "Invalid action"}), 400
+
+    db.session.commit()
+    return jsonify({"success": True})
+
+@app.route('/profile/<username>')
+def user_profile(username):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    viewer = User.query.filter_by(username=session['username']).first()
+    user = User.query.filter_by(username=username).first_or_404()
+    
+    is_friend = user in viewer.friends
+    is_own_profile = (viewer.id == user.id)
+    show_events = (not user.is_private) or is_friend or is_own_profile
+
+    planned_events = []
+    attended_events = []
+    
+    if show_events:
+        # Получаем последний статус для каждого мероприятия
+        subquery = db.session.query(
+            UserEventStatus.event_id,
+            func.max(UserEventStatus.created_at).label('max_date')
+        ).filter_by(user_id=user.id).group_by(UserEventStatus.event_id).subquery()
+
+        statuses = db.session.query(UserEventStatus).join(
+            subquery,
+            (UserEventStatus.event_id == subquery.c.event_id) &
+            (UserEventStatus.created_at == subquery.c.max_date)
+        ).all()
+
+        for status in statuses:
+            event = Event.query.get(status.event_id)
+            if event and event.is_active:
+                if status.status == 'planned':
+                    planned_events.append(event)
+                elif status.status == 'attended':
+                    attended_events.append(event)
+
+    role_display = ROLE_TRANSLATIONS.get(user.role.lower(), user.role.capitalize())
+    
+    return render_template('user_profile.html',
+                         user=user,
+                         is_friend=is_friend,
+                         username=user.username,
+                         email=user.email,
+                         role_display=role_display,
+                         description=user.description,
+                         show_events=show_events,
+                         is_own_profile=is_own_profile,
+                         planned_events=planned_events,
+                         attended_events=attended_events)
+
+@app.route('/update_privacy', methods=['POST'])
+def update_privacy():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    try:
+        data = request.get_json()
+        user.is_private = data.get('is_private', False)
+        db.session.commit()
+        return jsonify({"success": True})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 
 
