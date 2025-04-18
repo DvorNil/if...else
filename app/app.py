@@ -39,7 +39,8 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False, default='participant')
     email_confirmed = db.Column(db.Boolean, default=False)
     email_confirmed_on = db.Column(db.DateTime, nullable=True)
-    
+    description = db.Column(db.Text, nullable=True)
+
     favorite_organizers = db.relationship(
         'User', 
         secondary='user_organizer',
@@ -580,7 +581,7 @@ def get_all_events_status():
     return jsonify({
         int(status.event_id): status.status for status in statuses
     })
-    
+
 
 # Страница мероприятий организатора
 @app.route('/my_events')
@@ -715,7 +716,38 @@ def profile():
                          email=user.email,
                          role=role_in_text.get(user.role, "Участник"),
                          attended_events=attended_events,
-                         planned_events=planned_events)
+                         planned_events=planned_events,
+                         description = user.description)
+
+
+@app.route('/update_description', methods=['POST'])
+def update_description():
+    # Проверка авторизации
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Получение пользователя из БД
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    try:
+        # Парсинг JSON
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+            
+        # Обновление описания
+        user.description = data.get('description', user.description)
+        db.session.commit()
+        
+        return jsonify({"success": True, "new_description": user.description})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 
 
 if __name__ == '__main__':

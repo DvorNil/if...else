@@ -16,6 +16,17 @@
             <p><strong>Никнейм:</strong> {{ username }}</p>
             <p><strong>Почта:</strong> {{ email }}</p>
             <p><strong>Роль:</strong> {{ role }}</p>
+            <div class="description-section">
+                <p><strong>Описание:</strong></p>
+                <form id="description-form" onsubmit="updateDescription(event)">
+                    <textarea 
+                        id="user-description" 
+                        class="description-input"
+                        placeholder="Расскажите о себе..."
+                    >{{ description if description else '' }}</textarea>
+                    <button type="submit" class="menu-btn">Сохранить</button>
+                </form>
+            </div>
         </div>
 
         <!-- Список посещенных мероприятий -->

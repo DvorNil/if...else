@@ -374,3 +374,26 @@ function getEventIdFromPost(post) {
     if (!post) return null;
     return parseInt(post.dataset.eventId) || null;
 }
+
+
+async function updateDescription(e) {
+    e.preventDefault();
+    const description = document.getElementById('user-description').value;
+    
+    try {
+        const response = await fetch('/update_description', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ description })
+        });
+
+        if (!response.ok) throw new Error('Ошибка сохранения');
+        alert('Описание успешно обновлено!');
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert(error.message);
+    }
+}
