@@ -7,7 +7,11 @@
 <body>
     <div class="header">
         <div class="user-container" id="userContainer">
-            <div class="user-circle"></div>
+            <div class="menu-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
             {% if session.username %}
                 <div class="user-menu" id="userMenu">
                     <a href="{{ url_for('logout') }}">Выйти</a>

@@ -1,4 +1,4 @@
-const userContainer = document.getElementById('userContainer');
+const menuIcon = document.querySelector('.menu-icon');
 const userMenu = document.getElementById('userMenu');
 
 
@@ -10,27 +10,28 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPostStatusIcons();
 });
 
-if (userContainer && userMenu) {
-    let timeoutId; 
+if (menuIcon && userMenu) {
+    let isMenuOpen = false;
     
-    userContainer.addEventListener('mouseenter', function() {
-        clearTimeout(timeoutId);
-        userMenu.classList.add('visible');
+    menuIcon.addEventListener('click', function(e) {
+        isMenuOpen = !isMenuOpen;
+        userMenu.classList.toggle('visible', isMenuOpen);
+        e.stopPropagation();
     });
 
-    userContainer.addEventListener('mouseleave', function() {
-        timeoutId = setTimeout(() => {
+    // Закрытие при клике вне меню
+    document.addEventListener('click', function(e) {
+        if (!userMenu.contains(e.target)) {
             userMenu.classList.remove('visible');
-        }, 300);
+            isMenuOpen = false;
+        }
     });
-
-    userMenu.addEventListener('mouseenter', function() {
-        clearTimeout(timeoutId);
-    });
-
+    
     userMenu.addEventListener('mouseleave', function() {
+        if (!isMenuOpen) return;
         timeoutId = setTimeout(() => {
             userMenu.classList.remove('visible');
+            isMenuOpen = false;
         }, 300);
     });
 } else {
