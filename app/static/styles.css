@@ -734,3 +734,34 @@ input:checked + .slider:before {
     color: #ff6200;
     margin-bottom: 15px;
 }
+
+#map-modal .modal-content {
+    max-width: 500px;
+    padding: 20px;
+    background: #1a1a1a;
+    color: white;
+    border-radius: 10px;
+}
+
+#map-modal h2 {
+    color: #ff6200;
+    margin-top: 0;
+}
+
+.leaflet-marker-icon.planned-marker {
+    background-color: #4CAF50;
+    border-radius: 50%;
+    width: 12px;
+    height: 12px;
+    border: 2px solid white;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.leaflet-marker-icon.planned-marker {
+    animation: pulse 2s infinite;
+}

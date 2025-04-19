@@ -681,3 +681,42 @@ function handleResponse(recommendationId, action) {
         }
     });
 }
+
+function showEventFromMap(eventId) {
+    // Получаем данные о мероприятии
+    const eventData = window.eventsData[eventId];
+    if (!eventData) return;
+    
+    // Показываем модальное окно
+    showMapModal(eventData);
+}
+
+function showMapModal(eventData) {
+    const modal = document.getElementById('map-modal');
+    if (!modal) return;
+    
+    document.getElementById('map-modal-title').textContent = eventData.title;
+    document.getElementById('map-modal-description').textContent = eventData.description;
+    document.getElementById('map-modal-location').textContent = eventData.location;
+    document.getElementById('map-modal-date').textContent = eventData.date;
+    document.getElementById('map-modal-organizer').textContent = eventData.organizer;
+    
+    modal.style.display = 'block';
+}
+
+function hideMapModal() {
+    document.getElementById('map-modal').style.display = 'none';
+}
+
+// Обработчик клика вне модального окна
+window.onclick = function(event) {
+    const modal = document.getElementById('map-modal');
+    if (event.target == modal) {
+        hideMapModal();
+    }
+    
+    const mainModal = document.getElementById('modal');
+    if (event.target == mainModal) {
+        hideModal();
+    }
+}

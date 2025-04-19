@@ -103,6 +103,11 @@ class Event(db.Model):
     password = db.Column(db.String(100))  # Пароль для приватных мероприятий
     organizer = db.relationship('User', backref='events')
     tags = db.relationship('Tag', secondary='event_tag', backref='events')
+    user_statuses = db.relationship(
+        'UserEventStatus',
+        backref=db.backref('event', lazy='joined'),
+        lazy='dynamic'
+    )
 
 # Связующая таблица для тегов и мероприятий
 class EventTag(db.Model):
@@ -488,14 +493,39 @@ def resend_confirmation():
 def show_map():
     events = Event.query.filter_by(is_active=True).all()
     m = folium.Map(location=[53.9, 27.5667], zoom_start=7)
+    
     for event in events:
         if event.lat and event.lng:
+            # Создаем popup с информацией о мероприятии
+            popup = folium.Popup(f"""
+                <b>{event.title}</b><br>
+                {event.location_name}<br>
+                {event.location_address}<br>
+                <button onclick="window.parent.showEventFromMap({event.id})">Подробнее</button>
+            """, max_width=300)
+            
+            # Добавляем маркер с дополнительными данными
             folium.Marker(
                 [event.lat, event.lng],
-                popup=f"{event.title}<br>{event.location_name}<br>{event.location_address}"  # Исправлено
+                popup=popup,
+                icon=folium.Icon(color='green' if any(s.status == 'planned' for s in event.user_statuses) else 'blue')
             ).add_to(m)
+    
     map_html = m._repr_html_()
-    return render_template('map.html', map_html=map_html)
+    
+    # Добавляем данные о мероприятиях в HTML
+    events_data = {
+        event.id: {
+            'title': event.title,
+            'description': event.description,
+            'location': f"{event.location_name}, {event.location_address}",
+            'date': event.date_time.strftime('%d.%m.%Y %H:%M'),
+            'organizer': event.organizer.username
+        }
+        for event in events if event.lat and event.lng
+    }
+    
+    return render_template('map.html', map_html=map_html, events_data=events_data)
 
 
 @app.route('/generate_map')

@@ -16,6 +16,13 @@
             gap: 20px;
             z-index: 1000;
         }
+        .planned-marker {
+            background-color: #4CAF50;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            border: 2px solid white;
+        }
     </style>
 </head>
 <body>
@@ -23,5 +30,69 @@
         <a href="{{ url_for('home') }}" class="menu-btn">Назад</a>
     </div>
     <div id="map">{{ map_html|safe }}</div>
+    
+    <!-- Добавляем модальное окно для просмотра мероприятий -->
+    <div id="map-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="hideMapModal()">×</span>
+            <h2 id="map-modal-title"></h2>
+            <p id="map-modal-description"></p>
+            <p><strong>Место:</strong> <span id="map-modal-location"></span></p>
+            <p><strong>Дата:</strong> <span id="map-modal-date"></span></p>
+            <p><strong>Организатор:</strong> <span id="map-modal-organizer"></span></p>
+            <button onclick="showFullEventDetails()" class="menu-btn">Подробнее</button>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Инициализация карты с обработчиками событий
+        document.addEventListener('DOMContentLoaded', function() {
+            // Получаем данные о статусах мероприятий
+            fetch('/get_all_events_status')
+                .then(response => response.json())
+                .then(statuses => {
+                    // Добавляем обработчики для маркеров
+                    document.querySelectorAll('.leaflet-marker-icon').forEach(marker => {
+                        const eventId = marker.getAttribute('data-event-id');
+                        if (eventId && statuses[eventId] === 'planned') {
+                            marker.classList.add('planned-marker');
+                        }
+                        
+                        // Добавляем обработчик клика
+                        marker.addEventListener('click', function() {
+                            const eventData = {
+                                eventId: eventId,
+                                title: marker.getAttribute('data-title'),
+                                description: marker.getAttribute('data-description'),
+                                location: marker.getAttribute('data-location'),
+                                date: marker.getAttribute('data-date'),
+                                organizer: marker.getAttribute('data-organizer')
+                            };
+                            showMapModal(eventData);
+                        });
+                    });
+                });
+        });
+        
+        function showMapModal(eventData) {
+            document.getElementById('map-modal-title').textContent = eventData.title;
+            document.getElementById('map-modal-description').textContent = eventData.description;
+            document.getElementById('map-modal-location').textContent = eventData.location;
+            document.getElementById('map-modal-date').textContent = eventData.date;
+            document.getElementById('map-modal-organizer').textContent = eventData.organizer;
+            document.getElementById('map-modal').style.display = 'block';
+        }
+        
+        function hideMapModal() {
+            document.getElementById('map-modal').style.display = 'none';
+        }
+        
+        function showFullEventDetails() {
+            // Здесь можно реализовать переход к полному просмотру мероприятия
+            hideMapModal();
+            // Или открыть полное модальное окно как в главном интерфейсе
+        }
+    </script>
 </body>
 </html>
