@@ -37,7 +37,6 @@ ROLE_TRANSLATIONS = {
     'organizer': 'Организатор',
     'admin': 'Администратор',
     'moderator': 'Модератор'
-    # Добавьте другие роли при необходимости
 }
 
 # Модель пользователя
@@ -53,6 +52,8 @@ class User(db.Model):
     is_private = db.Column(db.Boolean, default=False, nullable=False)
     occupation = db.Column(db.String(100), nullable=True)
     avatar_url = db.Column(db.String(200), nullable=True)
+    validation = db.Column(db.String(20), nullable=True)
+    comment = db.Column(db.Text, nullable=True)
 
     favorite_organizers = db.relationship(
         'User', 
@@ -182,9 +183,33 @@ with app.app_context():
             email='organizer1@example.com', 
             password=hashed_pwd, 
             role='organizer',
-            email_confirmed=True
+            email_confirmed=True,
+            validation=None
         )
         db.session.add(user2)
+
+    if not User.query.filter_by(username='moderator1').first():
+        hashed_pwd = bcrypt.generate_password_hash('moderator789').decode('utf-8')
+        user3 = User(
+            username='moderator1', 
+            email='moderator1@example.com', 
+            password=hashed_pwd, 
+            role='moderator',
+            email_confirmed=True,
+            validation=None
+        )
+        db.session.add(user3)
+
+    if not User.query.filter_by(username='admin1').first():
+        hashed_pwd = bcrypt.generate_password_hash('nimda').decode('utf-8')
+        user4 = User(
+            username='admin1', 
+            email='admin1@example.com', 
+            password=hashed_pwd, 
+            role='admin',
+            email_confirmed=True
+        )
+        db.session.add(user4)
     
     if not Tag.query.first():
         tags = ['музыка', 'отдых', 'искусство', 'культура', 'концерт']
@@ -247,6 +272,13 @@ with app.app_context():
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
+@app.context_processor
+def inject_user():
+    if 'username' in session:
+        user = User.query.filter_by(username=session['username']).first()
+        return {'current_user': user}
+    return {}
+
 # Главная страница
 @app.route('/', methods=['GET'])
 def home():
@@ -307,7 +339,7 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         role = request.form.get('role')
-        
+        comment = request.form.get('comment', '')
         
         if not username or not email or not password:
             return render_template('register.html', error="Все поля обязательны для заполнения")
@@ -319,12 +351,20 @@ def register():
             return render_template('register.html', error="Этот email уже зарегистрирован")
         
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+        user_role = 'participant'
+        validation = None
+        if role in ['organizer', 'moderator']:
+            validation = role
+
         user = User(
             username=username, 
             email=email, 
             password=hashed_password, 
-            role=role,
-            email_confirmed=False
+            role=user_role,
+            email_confirmed=False,
+            validation=validation,
+            comment=comment if role in ['organizer', 'moderator'] else None
         )
         db.session.add(user)
         db.session.commit()
@@ -375,7 +415,12 @@ def logout():
 # Добавление мероприятия
 @app.route('/add_event', methods=['GET', 'POST'])
 def add_event():
-    if 'username' not in session or session['role'] != 'organizer':
+    if 'username' not in session:
+        return redirect(url_for('home'))
+    
+    user = User.query.filter_by(username=session['username']).first()
+    
+    if not user or user.role == 'participant' or user.validation:
         return redirect(url_for('home'))
     
     tags = Tag.query.all()
@@ -1242,7 +1287,45 @@ def update_avatar():
     
     return jsonify({"error": "Invalid file"}), 400
 
+@app.route('/validation')
+def validation():
+    if 'username' not in session or session['role'] not in ['moderator', 'admin']:
+        return redirect(url_for('home'))
+    
+    # Для модераторов показываем только организаторов
+    if session['role'] == 'moderator':
+        organizers = User.query.filter_by(validation='organizer').all()
+        return render_template('validation.html', organizers=organizers, moderators=[])
+    
+    # Для админов показываем и организаторов, и модераторов
+    organizers = User.query.filter_by(validation='organizer').all()
+    moderators = User.query.filter_by(validation='moderator').all()
+    return render_template('validation.html', organizers=organizers, moderators=moderators)
 
+@app.route('/validate_user', methods=['POST'])
+def validate_user():
+    if 'username' not in session or session['role'] not in ['moderator', 'admin']:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    user_id = data.get('user_id')
+    role = data.get('role')
+    accept = data.get('accept')
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # Проверяем права
+    if session['role'] == 'moderator' and role != 'organizer':
+        return jsonify({"error": "Forbidden"}), 403
+    
+    if accept:
+        user.role = role
+    user.validation = None
+    db.session.commit()
+    
+    return jsonify({"success": True})
 
 
 if __name__ == '__main__':

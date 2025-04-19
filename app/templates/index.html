@@ -18,19 +18,26 @@
                     <a href="{{ url_for('login') }}">Сменить аккаунт</a>
                     <a href="{{ url_for('invitations') }}">Приглашения</a>
                     <a href="{{ url_for('friends') }}">Друзья</a>
-                    {% if session.role == 'organizer' %}
+
+                    {% if session.role in ['moderator', 'admin'] %}
+                        <a href="{{ url_for('validation') }}">Подтверждение статуса</a>
+                    {% endif %}
+
+                    {% if session.role == 'organizer' and not current_user.validation %}
                         <a href="{{ url_for('add_event') }}">Добавить мероприятие</a>
                         <a href="{{ url_for('my_events') }}">Мои мероприятия</a>
                     {% endif %}
-                    {% if session.role == 'organizer' or session.role == 'moderator' %}
+
+                    {% if session.role in ['moderator', 'admin'] and not current_user.validation %}
                         <a href="{{ url_for('add_tag') }}">Добавить тег</a>
-                        {% endif %}   
-                    
+                    {% endif %}   
+                                        
                     {% if session.role in ['moderator', 'admin'] %}
                         <a href="{{ url_for('all_organizers') }}">Все организаторы</a>
                         <a href="{{ url_for('all_users') }}">Все участники</a>
                         <a href="{{ url_for('all_events') }}">Все мероприятия</a>
                     {% endif %}
+                    
                     <a href="{{ url_for('profile') }}">Профиль</a>
                 </div>
             {% else %}
@@ -59,6 +66,15 @@
     </div>
 
     <div class="posts-container">
+        {% if session.username and session.role == 'participant' and current_user.validation %}
+            <div class="warning">
+                {% if current_user.validation == 'organizer' %}
+                    Вы не обладаете возможностями организатора до подтверждения модератором или администратором
+                {% elif current_user.validation == 'moderator' %}
+                    Вы не обладаете возможностями модератора до подтверждения администратором
+                {% endif %}
+            </div>
+        {% endif %}
         {% for post in posts %}
              {% include 'post.html' %}
         {% endfor %}

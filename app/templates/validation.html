@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Подтверждение статуса</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <div class="user-container" id="userContainer">
+            <!-- Копируем меню из index.html -->
+        </div>
+        <div class="menu-buttons">
+            <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+        </div>
+    </div>
+
+    <div class="posts-container">
+        {% if session.role == 'admin' %}
+            <h2>Модераторы на подтверждение</h2>
+            {% if moderators %}
+                <div class="users-list">
+                    {% for current_user in moderators %}
+                        <div class="user-item">
+                            <p><strong>Имя:</strong> {{ current_user.username }}</p>
+                            <p><strong>Email:</strong> {{ current_user.email }}</p>
+                            {% if current_user.comment %}
+                                <p><strong>Комментарий:</strong> {{ current_user.comment }}</p>
+                            {% endif %}
+                            <div class="user-actions">
+                                <button class="menu-btn accept-btn" 
+                                        onclick="validateUser('{{ current_user.id }}', 'moderator', true)">
+                                    Подтвердить
+                                </button>
+                                <button class="menu-btn reject-btn" 
+                                        onclick="validateUser('{{ current_user.id }}', 'moderator', false)">
+                                    Отклонить
+                                </button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Нет модераторов на подтверждение</p>
+            {% endif %}
+        {% endif %}
+
+        <h2>Организаторы на подтверждение</h2>
+        {% if organizers %}
+            <div class="users-list">
+                {% for current_user in organizers %}
+                    <div class="user-item">
+                        <p><strong>Имя:</strong> {{ current_user.username }}</p>
+                        <p><strong>Email:</strong> {{ current_user.email }}</p>
+                        {% if current_user.comment %}
+                            <p><strong>Комментарий:</strong> {{ current_user.comment }}</p>
+                        {% endif %}
+                        <div class="user-actions">
+                            <button class="menu-btn accept-btn" 
+                                    onclick="validateUser('{{ current_user.id }}', 'organizer', true)">
+                                Подтвердить
+                            </button>
+                            <button class="menu-btn reject-btn" 
+                                    onclick="validateUser('{{ current_user.id }}', 'organizer', false)">
+                                Отклонить
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Нет организаторов на подтверждение</p>
+        {% endif %}
+    </div>
+
+    <script>
+        function validateUser(userId, role, accept) {
+            fetch('/validate_user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    role: role,
+                    accept: accept
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Ошибка: ' + data.error);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

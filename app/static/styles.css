@@ -950,3 +950,42 @@ input:checked + .slider:before {
     margin-bottom: 10px;
     border-radius: 8px;
 }
+
+.users-list {
+    display: grid;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.user-item {
+    background: #2a2a2a;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.user-item p {
+    margin: 8px 0;
+}
+
+.user-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.accept-btn {
+    background: #4CAF50 !important;
+}
+
+.reject-btn {
+    background: #f44336 !important;
+}
+
+.warning {
+    background: rgba(255, 98, 0, 0.1);
+    border: 1px solid #ff6200;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}

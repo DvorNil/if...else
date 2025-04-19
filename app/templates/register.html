@@ -3,6 +3,22 @@
 <head>
     <title>Регистрация</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        #comment-field {
+            display: none;
+            margin-top: 15px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            background: #333;
+            border: 1px solid #ff6200;
+            border-radius: 5px;
+            color: white;
+            margin-top: 5px;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -15,21 +31,48 @@
         {% elif success %}
             <p style="color: green;">{{ success }}</p>
         {% endif %}
-        <form method="POST">
+        <form method="POST" id="register-form">
             <label>Имя пользователя:</label><br>
             <input class="search-input" type="text" name="username" required placeholder="Введите логин"><br><br>
+            
             <label>Email:</label><br>
             <input class="search-input" type="email" name="email" required placeholder="Введите email"><br><br>
+            
             <label>Пароль:</label><br>
             <input class="search-input" type="password" name="password" required placeholder="Введите пароль"><br><br>
+            
             <label>Кто вы:</label><br>
-            <select class="menu-btn" name="role">
+            <select class="menu-btn" name="role" id="role-select" onchange="toggleCommentField()">
                 <option value="participant">Участник</option>
                 <option value="organizer">Организатор</option>
                 <option value="moderator">Модератор</option>
             </select><br><br>
+            
+            <div id="comment-field">
+                <label>Почему вы хотите стать организатором/модератором:</label><br>
+                <textarea name="comment" placeholder="Опишите ваш опыт и причины"></textarea><br>
+            </div>
+            
             <button type="submit" class="menu-btn">Зарегистрироваться</button>
         </form>
     </div>
+
+    <script>
+        function toggleCommentField() {
+            const role = document.getElementById('role-select').value;
+            const commentField = document.getElementById('comment-field');
+            
+            if (role === 'organizer' || role === 'moderator') {
+                commentField.style.display = 'block';
+            } else {
+                commentField.style.display = 'none';
+            }
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleCommentField();
+        });
+    </script>
 </body>
 </html>
