@@ -734,36 +734,55 @@ def edit_event(event_id):
     tags = Tag.query.all()
     
     if request.method == 'POST':
-        event.title = request.form.get('title')
-        event.description = request.form.get('description')
-        event.format = request.form.get('format')
-        event.location = request.form.get('location')
-        event.date_time = datetime.strptime(request.form.get('date_time'), '%Y-%m-%dT%H:%M')
-        event.duration = int(request.form.get('duration'))
-        event.lat = float(request.form.get('lat', 0))
-        event.lng = float(request.form.get('lng', 0))
-        event.event_type = request.form.get('event_type')
+        try:
+            event.title = request.form.get('title')
+            event.description = request.form.get('description')
+            event.format = request.form.get('format')
+            event.location_name = request.form.get('location_name', '')
+            event.location_address = request.form.get('location_address', '')
+            event.online_info = request.form.get('online_info', '')
+            event.date_time = datetime.strptime(request.form.get('date_time'), '%Y-%m-%dT%H:%M')
+            event.duration = int(request.form.get('duration'))
+            event.event_type = request.form.get('event_type')
+            event.is_private = request.form.get('is_private') == 'true'
+            event.password = request.form.get('password') if event.is_private else None
+            
+            # Обработка координат только для офлайн мероприятий
+            if event.format == 'offline':
+                lat_str = request.form.get('lat', '0')
+                lng_str = request.form.get('lng', '0')
+                event.lat = float(lat_str) if lat_str else None
+                event.lng = float(lng_str) if lng_str else None
+            else:
+                event.lat = None
+                event.lng = None
+            
+            # Обновление тегов
+            EventTag.query.filter_by(event_id=event.id).delete()
+            selected_tags = request.form.getlist('tags')
+            for tag_id in selected_tags:
+                tag = Tag.query.get(tag_id)
+                if tag:
+                    db.session.add(EventTag(event_id=event.id, tag_id=tag.id))
+            
+            # Обновление изображения
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    event.image_url = f'uploads/{filename}'
+            
+            db.session.commit()
+            return redirect(url_for('my_events'))
         
-        # Обновление тегов
-        EventTag.query.filter_by(event_id=event.id).delete()
-        selected_tags = request.form.getlist('tags')
-        for tag_id in selected_tags:
-            tag = Tag.query.get(tag_id)
-            if tag:
-                db.session.add(EventTag(event_id=event.id, tag_id=tag.id))
-        
-        # Обновление изображения
-        if 'image' in request.files:
-            file = request.files['image']
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(filepath)
-                event.image_url = f'uploads/{filename}'
-        
-        db.session.commit()
-        return redirect(url_for('my_events'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка: {str(e)}', 'error')
+            app.logger.error(f"Edit event error: {str(e)}")
+            return redirect(url_for('edit_event', event_id=event_id))
     
     # Заполняем форму текущими данными
     selected_tag_ids = [tag.id for tag in event.tags]
