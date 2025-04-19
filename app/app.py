@@ -554,7 +554,7 @@ def generate_map():
 # Добавление тега
 @app.route('/add_tag', methods=['GET', 'POST'])
 def add_tag():
-    if 'username' not in session or session['role'] != 'organizer':
+    if 'username' not in session or session['role'] not in ['organizer', 'moderator', 'admin']:
         return redirect(url_for('home'))
     if request.method == 'POST':
         tag_name = request.form.get('tag_name')
