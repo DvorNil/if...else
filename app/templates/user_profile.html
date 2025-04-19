@@ -11,7 +11,11 @@
     
     <div class="posts-container">
         <h2>Профиль пользователя {{ username }}</h2>
-        
+        <div class="avatar-section">
+            <img src="{{ url_for('static', filename=user.avatar_url) if user.avatar_url else url_for('static', filename='images/default-avatar.png') }}" 
+                 class="user-avatar"
+                 alt="Аватар">
+        </div>
         <div class="profile-info">
             <p><strong>Никнейм:</strong> {{ username }}</p>
             <p><strong>Роль:</strong> {{ role_display }}</p>

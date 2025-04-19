@@ -38,6 +38,9 @@
                 {% for friend in user.friends %}
                     <a href="{{ url_for('user_profile', username=friend.username) }}" 
                        class="friend-item">
+                        <img src="{{ url_for('static', filename=friend.avatar_url) if friend.avatar_url else url_for('static', filename='images/default-avatar.png') }}"
+                             class="user-avatar"
+                             alt="{{ friend.username }}">
                         <span>{{ friend.username }}</span>
                     </a>
                 {% else %}

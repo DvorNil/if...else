@@ -444,6 +444,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(users => {
                 searchResults.innerHTML = users.map(user => `
                     <div class="user-result" data-user-id="${user.id}">
+                        <img src="${user.avatar_url 
+                            ? '/static/' + user.avatar_url 
+                            : '/static/images/default-avatar.png'}" 
+                             class="user-avatar"
+                             alt="${user.username}">
                         <span>${user.username}</span>
                         <button class="menu-btn add-friend-btn" 
                                 onclick="sendFriendRequest(${user.id}, this)">
@@ -486,7 +491,6 @@ function sendFriendRequest(userId, btn) {
 function loadFriendRequests() {
     const container = document.getElementById('friend-requests-list');
     
-    // Проверка существования элемента
     if (!container) {
         console.error('Элемент friend-requests-list не найден!');
         return;
@@ -498,16 +502,17 @@ function loadFriendRequests() {
             return response.json();
         })
         .then(requests => {
-            // Проверка на пустой массив
             if (!requests.length) {
                 container.innerHTML = '<p class="empty-message">Нет входящих запросов</p>';
                 return;
             }
 
-            // Генерация HTML
             container.innerHTML = requests.map(req => `
                 <div class="request-item" data-request-id="${req.id}">
-                    <span>${req.sender} </span>
+                    <img src="${req.sender_avatar ? '/static/' + req.sender_avatar : '/static/images/default-avatar.png'}" 
+                         class="user-avatar"
+                         alt="${req.sender}">
+                    <span>${req.sender}</span>
                     <div class="request-actions">
                         <button class="menu-btn accept-btn" 
                                 onclick="handleFriendRequestResponse('${req.id}', 'accept')">
@@ -725,5 +730,25 @@ function confirmDelete(eventId) {
                 alert('Ошибка при удалении мероприятия');
             }
         });
+    }
+}
+
+async function updateAvatar(e) {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('avatar', document.getElementById('avatar-input').files[0]);
+
+    try {
+        const response = await fetch('/update_avatar', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            document.querySelector('.user-avatar').src = `/static/${data.avatar_url}`;
+        }
+    } catch (error) {
+        console.error('Error:', error);
     }
 }

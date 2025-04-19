@@ -25,6 +25,7 @@ app.config['MAIL_PASSWORD'] = 'dzfo lmul vkkv yymx'
 app.config['MAIL_DEFAULT_SENDER'] = 'tesamye.ifelse@gmail.com'
 app.config['SECRET_KEY'] = '6jujmgkxze4png8ch3xg8r3052a01ia'
 app.config['SECURITY_PASSWORD_SALT'] = 'salt52n1o0jnv2omiv0kmn94aoaomm6sex5'
+app.config['MAX_AVATAR_SIZE'] = 2 * 1024 * 1024  # 2MB
 Session(app)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -51,6 +52,7 @@ class User(db.Model):
     description = db.Column(db.Text, nullable=True)
     is_private = db.Column(db.Boolean, default=False, nullable=False)
     occupation = db.Column(db.String(100), nullable=True)
+    avatar_url = db.Column(db.String(200), nullable=True)
 
     favorite_organizers = db.relationship(
         'User', 
@@ -848,7 +850,7 @@ def search_users():
     return jsonify([{
         'id': user.id,
         'username': user.username,
-        'avatar': url_for('static', filename='images/user-circle.png')
+        'avatar_url': user.avatar_url 
     } for user in users])
 
 # Маршрут добавления в друзья
@@ -889,14 +891,15 @@ def add_friend():
 @app.route('/friend_requests')
 def get_friend_requests():
     if 'username' not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-
+        return jsonify([])
+    
     user = User.query.filter_by(username=session['username']).first()
     requests = Friendship.query.filter_by(friend_id=user.id, status='pending').all()
-
+    
     return jsonify([{
         "id": req.id,
         "sender": req.sender.username,
+        "sender_avatar": req.sender.avatar_url,
         "created_at": req.created_at.strftime("%d.%m.%Y %H:%M")
     } for req in requests])
 
@@ -1194,6 +1197,28 @@ def edit_user(user_id):
         return redirect(url_for('all_users'))
     
     return render_template('edit_user.html', user=target_user)
+
+@app.route('/update_avatar', methods=['POST'])
+def update_avatar():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(username=session['username']).first()
+    if 'avatar' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files['avatar']
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'avatars', filename)
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        file.save(filepath)
+        user.avatar_url = f'uploads/avatars/{filename}'
+        db.session.commit()
+        return jsonify({"success": True, "avatar_url": user.avatar_url})
+    
+    return jsonify({"error": "Invalid file"}), 400
+
 
 
 
