@@ -20,7 +20,12 @@
                     <a href="{{ url_for('friends') }}">Друзья</a>
 
                     {% if session.role in ['moderator', 'admin'] %}
-                        <a href="{{ url_for('validation') }}">Подтверждение статуса</a>
+                        <a href="{{ url_for('validation') }}">
+                            Подтверждение статуса
+                            {% if pending_organizers + pending_moderators > 0 %}
+                                <span class="notification-badge">{{ pending_organizers + pending_moderators }}</span>
+                            {% endif %}
+                        </a>
                     {% endif %}
 
                     {% if session.role == 'organizer' and not current_user.validation %}

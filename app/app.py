@@ -1346,6 +1346,17 @@ def validate_user():
     
     return jsonify({"success": True})
 
+@app.context_processor
+def inject_validation_counts():
+    if 'username' in session and session.get('role') in ['moderator', 'admin']:
+        pending_organizers = User.query.filter_by(validation='organizer').count()
+        if session['role'] == 'admin':
+            pending_moderators = User.query.filter_by(validation='moderator').count()
+        else:
+            pending_moderators = 0
+        return {'pending_organizers': pending_organizers, 'pending_moderators': pending_moderators}
+    return {}
+
 
 if __name__ == '__main__':
     app.run(debug=True)
