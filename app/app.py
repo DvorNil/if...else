@@ -35,6 +35,7 @@ ROLE_TRANSLATIONS = {
     'participant': 'Участник',
     'organizer': 'Организатор',
     'admin': 'Администратор',
+    'moderator': 'Модератор'
     # Добавьте другие роли при необходимости
 }
 
@@ -305,8 +306,6 @@ def register():
         password = request.form.get('password')
         role = request.form.get('role')
         
-        if role not in ['participant', 'organizer']:
-            role = 'participant'
         
         if not username or not email or not password:
             return render_template('register.html', error="Все поля обязательны для заполнения")
@@ -680,13 +679,13 @@ def my_events():
 # Удаление мероприятия
 @app.route('/delete_event/<int:event_id>', methods=['DELETE'])
 def delete_event(event_id):
-    if 'username' not in session or session['role'] != 'organizer':
+    if 'username' not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
     event = Event.query.get_or_404(event_id)
     user = User.query.filter_by(username=session['username']).first()
     
-    if event.organizer_id != user.id:
+    if event.organizer_id != user.id and session['role'] not in ['moderator', 'admin']:
         return jsonify({"error": "Forbidden"}), 403
     
     # Мягкое удаление (изменение статуса is_active)
@@ -698,13 +697,13 @@ def delete_event(event_id):
 # Редактирование мероприятия
 @app.route('/edit_event/<int:event_id>', methods=['GET', 'POST'])
 def edit_event(event_id):
-    if 'username' not in session or session['role'] != 'organizer':
+    if 'username' not in session:
         return redirect(url_for('home'))
     
     event = Event.query.get_or_404(event_id)
     user = User.query.filter_by(username=session['username']).first()
     
-    if event.organizer_id != user.id:
+    if event.organizer_id != user.id and session.get('role') not in ['moderator', 'admin']:
         return redirect(url_for('home'))
     
     tags = Tag.query.all()
@@ -1110,6 +1109,22 @@ def update_occupation():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
     
+@app.route('/all_events')
+def all_events():
+    if 'username' not in session or session.get('role') not in ['moderator', 'admin']:
+        return redirect(url_for('home'))
+    
+    events = Event.query.filter_by(is_active=True).all()
+    return render_template('all_events.html', events=events)
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':

@@ -712,3 +712,17 @@ async function updateOccupation(e) {
         alert(error.message);
     }
 }
+
+function confirmDelete(eventId) {
+    if (confirm('Вы уверены, что хотите удалить это мероприятие?')) {
+        fetch(`/delete_event/${eventId}`, {
+            method: 'DELETE',
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Ошибка при удалении мероприятия');
+            }
+        });
+    }
+}

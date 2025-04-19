@@ -16,8 +16,14 @@
                     <a href="{{ url_for('friends') }}">Друзья</a>
                     {% if session.role == 'organizer' %}
                         <a href="{{ url_for('add_event') }}">Добавить мероприятие</a>
-                        <a href="{{ url_for('add_tag') }}">Добавить тег</a>
                         <a href="{{ url_for('my_events') }}">Мои мероприятия</a>
+                    {% endif %}
+                    {% if session.role == 'organizer' or session.role == 'moderator' %}
+                        <a href="{{ url_for('add_tag') }}">Добавить тег</a>
+                        {% endif %}   
+                    
+                    {% if session.role == 'moderator' %}
+                        <a href="{{ url_for('all_events') }}">Все мероприятия</a>
                     {% endif %}
                     <a href="{{ url_for('profile') }}">Профиль</a>
                 </div>
