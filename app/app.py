@@ -518,13 +518,22 @@ def show_map():
         event.id: {
             'title': event.title,
             'description': event.description,
-            'location': f"{event.location_name}, {event.location_address}",
-            'date': event.date_time.strftime('%d.%m.%Y %H:%M'),
-            'organizer': event.organizer.username
+            'locationName': event.location_name,
+            'locationAddress': event.location_address,
+            'dateTime': event.date_time.isoformat(),
+            'organizerUsername': event.organizer.username,
+            'eventType': event.event_type,
+            'tags': [tag.name for tag in event.tags],
+            'format': event.format,
+            'duration': event.duration,
+            'lat': event.lat,
+            'lng': event.lng,
+            'isPrivate': event.is_private,
+            'imageUrl': event.image_url
         }
         for event in events if event.lat and event.lng
     }
-    
+
     return render_template('map.html', map_html=map_html, events_data=events_data)
 
 

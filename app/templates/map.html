@@ -31,18 +31,8 @@
     </div>
     <div id="map">{{ map_html|safe }}</div>
     
-    <!-- Добавляем модальное окно для просмотра мероприятий -->
-    <div id="map-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="hideMapModal()">×</span>
-            <h2 id="map-modal-title"></h2>
-            <p id="map-modal-description"></p>
-            <p><strong>Место:</strong> <span id="map-modal-location"></span></p>
-            <p><strong>Дата:</strong> <span id="map-modal-date"></span></p>
-            <p><strong>Организатор:</strong> <span id="map-modal-organizer"></span></p>
-            <button onclick="showFullEventDetails()" class="menu-btn">Подробнее</button>
-        </div>
-    </div>
+    <!-- Включаем готовое модальное окно из modal.html -->
+    {% include 'modal.html' %}
     
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
@@ -58,40 +48,42 @@
                         if (eventId && statuses[eventId] === 'planned') {
                             marker.classList.add('planned-marker');
                         }
-                        
-                        // Добавляем обработчик клика
-                        marker.addEventListener('click', function() {
-                            const eventData = {
-                                eventId: eventId,
-                                title: marker.getAttribute('data-title'),
-                                description: marker.getAttribute('data-description'),
-                                location: marker.getAttribute('data-location'),
-                                date: marker.getAttribute('data-date'),
-                                organizer: marker.getAttribute('data-organizer')
-                            };
-                            showMapModal(eventData);
-                        });
                     });
                 });
         });
         
-        function showMapModal(eventData) {
-            document.getElementById('map-modal-title').textContent = eventData.title;
-            document.getElementById('map-modal-description').textContent = eventData.description;
-            document.getElementById('map-modal-location').textContent = eventData.location;
-            document.getElementById('map-modal-date').textContent = eventData.date;
-            document.getElementById('map-modal-organizer').textContent = eventData.organizer;
-            document.getElementById('map-modal').style.display = 'block';
-        }
+        // Передаем данные мероприятий из Flask в JavaScript
+        window.eventsData = {{ events_data | tojson | safe }};
         
-        function hideMapModal() {
-            document.getElementById('map-modal').style.display = 'none';
-        }
-        
-        function showFullEventDetails() {
-            // Здесь можно реализовать переход к полному просмотру мероприятия
-            hideMapModal();
-            // Или открыть полное модальное окно как в главном интерфейсе
+        function showEventFromMap(eventId) {
+            const eventData = window.eventsData[eventId];
+            if (!eventData) {
+                console.error('Event data not found for ID:', eventId);
+                return;
+            }
+            
+            // Преобразуем данные для совместимости с showModal
+            const modalEventData = {
+                eventId: eventData.id,
+                title: eventData.title,
+                description: eventData.description,
+                locationName: eventData.locationName,
+                locationAddress: eventData.locationAddress,
+                tags: eventData.tags.join(', '),
+                eventType: eventData.eventType,
+                lat: eventData.lat,
+                lng: eventData.lng,
+                imageUrl: eventData.imageUrl,
+                isPrivate: eventData.isPrivate,
+                format: eventData.format,
+                onlineInfo: eventData.onlineInfo,
+                dateTime: eventData.dateTime,
+                duration: eventData.duration,
+                organizerUsername: eventData.organizerUsername
+            };
+            
+            // Используем существующую функцию showModal
+            showModal(modalEventData);
         }
     </script>
 </body>
