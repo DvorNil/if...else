@@ -718,3 +718,19 @@ input:checked + .slider:before {
     background-color: #f44336 !important;
     margin-left: 10px;
 }
+
+.friends-section, 
+.friend-requests-section, 
+.friends-list-section {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
+
+.friends-section h3, 
+.friend-requests-section h3, 
+.friends-list-section h3 {
+    color: #ff6200;
+    margin-bottom: 15px;
+}

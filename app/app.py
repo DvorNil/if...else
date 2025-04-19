@@ -1046,7 +1046,13 @@ def respond_invitation():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-
+@app.route('/friends')
+def friends():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.filter_by(username=session['username']).first()
+    return render_template('friends.html', user=user)
 
 
 

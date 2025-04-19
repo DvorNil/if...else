@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Друзья и запросы</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+        <a href="{{ url_for('profile') }}" class="menu-btn">Профиль</a>
+    </div>
+    
+    <div class="posts-container">
+        <h2>Друзья и запросы</h2>
+
+        <!-- Поиск пользователей -->
+        <div class="friends-section">
+            <h3>Поиск пользователей</h3>
+            <div class="search-friends">
+                <input type="text" 
+                       id="friend-search" 
+                       class="search-input" 
+                       placeholder="Введите имя пользователя">
+                <div id="search-results" class="search-results"></div>
+            </div>
+        </div>
+
+        <!-- Входящие запросы -->
+        <div class="friend-requests-section">
+            <h3>Входящие запросы</h3>
+            <div id="friend-requests-list"></div>
+        </div>
+
+        <!-- Список друзей -->
+        <div class="friends-list-section">
+            <h3>Ваши друзья</h3>
+            <div class="friends-container">
+                {% for friend in user.friends %}
+                    <a href="{{ url_for('user_profile', username=friend.username) }}" 
+                       class="friend-item">
+                        <span>{{ friend.username }}</span>
+                    </a>
+                {% else %}
+                    <p class="empty-message">У вас пока нет друзей</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% include 'modal.html' %}
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

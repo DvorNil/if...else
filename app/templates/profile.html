@@ -59,26 +59,6 @@
             </form>
         </div>
 
-        <div class="friends-list-section">
-            <h3>Ваши друзья</h3>
-            <div class="friends-container">
-                {% for friend in user.friends %}
-                    <a href="{{ url_for('user_profile', username=friend.username) }}" 
-                       class="friend-item">
-                        <span>{{ friend.username }}</span>
-                    </a>
-                {% else %}
-                    <p class="empty-message">У вас пока нет друзей</p>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Входящие запросы -->
-        <div class="friend-requests-section">
-            <h3>Входящие запросы</h3>
-            <div id="friend-requests-list"></div>
-        </div>
-
         <!-- Список посещенных мероприятий -->
         <details class="events-section">
             <summary>Посещенные мероприятия</summary>
@@ -98,7 +78,7 @@
                 {% for post in planned_events %}
                     {% include 'post.html' %}
                 {% else %}
-                <p class="empty-message">Нет мероприятий в планах</p>
+                <p class="empty-message">Нет запланированных мероприятий</p>
                 {% endfor %}
             </div>
         </details>
