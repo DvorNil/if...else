@@ -7,9 +7,6 @@
 <body>
     <div class="header">
         <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
-        {% if session.role in ['moderator', 'admin'] %}
-            <a href="{{ url_for('all_users') }}" class="menu-btn">Пользователи</a>
-        {% endif %}
     </div>
 
     <div class="posts-container">
