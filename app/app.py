@@ -1357,6 +1357,18 @@ def inject_validation_counts():
         return {'pending_organizers': pending_organizers, 'pending_moderators': pending_moderators}
     return {}
 
+@app.context_processor
+def inject_friend_requests_count():
+    if 'username' in session:
+        user = User.query.filter_by(username=session['username']).first()
+        if user:
+            pending_requests = Friendship.query.filter_by(
+                friend_id=user.id, 
+                status='pending'
+            ).count()
+            return {'pending_friend_requests': pending_requests}
+    return {}
+
 
 if __name__ == '__main__':
     app.run(debug=True)

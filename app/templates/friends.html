@@ -27,7 +27,12 @@
 
         <!-- Входящие запросы -->
         <div class="friend-requests-section">
-            <h3>Входящие запросы</h3>
+            <h3>
+                Входящие запросы
+                {% if pending_friend_requests > 0 %}
+                    <span class="notification-badge">{{ pending_friend_requests }}</span>
+                {% endif %}
+            </h3>
             <div id="friend-requests-list"></div>
         </div>
 
@@ -38,9 +43,6 @@
                 {% for friend in user.friends %}
                     <a href="{{ url_for('user_profile', username=friend.username) }}" 
                        class="friend-item">
-                        <img src="{{ url_for('static', filename=friend.avatar_url) if friend.avatar_url else url_for('static', filename='images/default-avatar.png') }}"
-                             class="user-avatar"
-                             alt="{{ friend.username }}">
                         <span>{{ friend.username }}</span>
                     </a>
                 {% else %}

@@ -551,7 +551,8 @@ function handleFriendRequestResponse(requestId, action) {
     .then(response => {
         if (response.ok) {
             loadFriendRequests(); // Обновляем список
-            alert(action === 'accept' ? 'Запрос принят!' : 'Запрос отклонен');
+            //alert(action === 'accept' ? 'Запрос принят!' : 'Запрос отклонен');
+            window.location.reload();
         }
     });
 }

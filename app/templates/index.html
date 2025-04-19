@@ -17,8 +17,11 @@
                     <a href="{{ url_for('logout') }}">Выйти</a>
                     <a href="{{ url_for('login') }}">Сменить аккаунт</a>
                     <a href="{{ url_for('invitations') }}">Приглашения</a>
-                    <a href="{{ url_for('friends') }}">Друзья</a>
-
+                    <a href="{{ url_for('friends') }}">Друзья
+                        {% if pending_friend_requests > 0 %}
+                            <span class="notification-badge">{{ pending_friend_requests }}
+                        {% endif %}
+                    </a>
                     {% if session.role in ['moderator', 'admin'] %}
                         <a href="{{ url_for('validation') }}">
                             Подтверждение статуса
