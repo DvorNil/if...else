@@ -443,7 +443,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(users => {
                 searchResults.innerHTML = users.map(user => `
                     <div class="user-result" data-user-id="${user.id}">
-                        <img src="${user.avatar}" class="user-avatar" alt="Аватар">
                         <span>${user.username}</span>
                         <button class="menu-btn add-friend-btn" 
                                 onclick="sendFriendRequest(${user.id}, this)">
@@ -507,7 +506,7 @@ function loadFriendRequests() {
             // Генерация HTML
             container.innerHTML = requests.map(req => `
                 <div class="request-item" data-request-id="${req.id}">
-                    <span>${req.sender} (${new Date(req.created_at).toLocaleDateString()})</span>
+                    <span>${req.sender} </span>
                     <div class="request-actions">
                         <button class="menu-btn accept-btn" 
                                 onclick="handleFriendRequestResponse('${req.id}', 'accept')">
@@ -695,3 +694,21 @@ window.onclick = function(event) {
     }
 }
 
+async function updateOccupation(e) {
+    e.preventDefault();
+    const occupation = document.getElementById('user-occupation').value;
+    
+    try {
+        const response = await fetch('/update_occupation', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ occupation })
+        });
+        
+        if (!response.ok) throw new Error('Ошибка сохранения');
+        alert('Данные успешно обновлены!');
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert(error.message);
+    }
+}

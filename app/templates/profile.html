@@ -16,6 +16,19 @@
             <p><strong>Никнейм:</strong> {{ username }}</p>
             <p><strong>Почта:</strong> {{ email }}</p>
             <p><strong>Роль:</strong> {{ role }}</p>
+            {% if session.role == 'organizer' %}
+                <div class="occupation-section">
+                    <p><strong>Вид деятельности:</strong></p>
+                    <form id="occupation-form" onsubmit="updateOccupation(event)">
+                        <input type="text" 
+                            id="user-occupation" 
+                            class="search-input"
+                            value="{{ user.occupation or '' }}"
+                            placeholder="Укажите сферу деятельности">
+                        <button type="submit" class="menu-btn">Сохранить</button>
+                    </form>
+                </div>
+            {% endif %}
             <div class="description-section">
                 <p><strong>Описание:</strong></p>
                 <form id="description-form" onsubmit="updateDescription(event)">
@@ -26,17 +39,6 @@
                     >{{ description if description else '' }}</textarea>
                     <button type="submit" class="menu-btn">Сохранить</button>
                 </form>
-            </div>
-        </div>
-
-        <div class="friends-section">
-            <h3>Поиск пользователей</h3>
-            <div class="search-friends">
-                <input type="text" 
-                       id="friend-search" 
-                       class="search-input" 
-                       placeholder="Введите имя пользователя">
-                <div id="search-results" class="search-results"></div>
             </div>
         </div>
 

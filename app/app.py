@@ -49,6 +49,7 @@ class User(db.Model):
     email_confirmed_on = db.Column(db.DateTime, nullable=True)
     description = db.Column(db.Text, nullable=True)
     is_private = db.Column(db.Boolean, default=False, nullable=False)
+    occupation = db.Column(db.String(100), nullable=True)
 
     favorite_organizers = db.relationship(
         'User', 
@@ -1093,7 +1094,22 @@ def friends():
     user = User.query.filter_by(username=session['username']).first()
     return render_template('friends.html', user=user)
 
-
+@app.route('/update_occupation', methods=['POST'])
+def update_occupation():
+    if 'username' not in session or session['role'] != 'organizer':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    user = User.query.filter_by(username=session['username']).first()
+    
+    try:
+        user.occupation = data.get('occupation', '')[:100]  # Ограничение длины
+        db.session.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
 
 
 if __name__ == '__main__':
