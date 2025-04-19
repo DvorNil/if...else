@@ -139,6 +139,19 @@ class Friendship(db.Model):
     receiver = db.relationship('User', foreign_keys=[friend_id], backref='received_requests')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+# Модель рекоммендаций событий
+class Recommendation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Связи
+    sender = db.relationship('User', foreign_keys=[sender_id])
+    receiver = db.relationship('User', foreign_keys=[receiver_id])
+    event = db.relationship('Event')
+
 # Создание таблиц и добавление начальных данных
 with app.app_context():
     db.create_all()
@@ -944,6 +957,95 @@ def update_privacy():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+# Получение списка друзей
+@app.route('/get_friends')
+def get_friends():
+    if 'username' not in session:
+        return jsonify([])
+    
+    user = User.query.filter_by(username=session['username']).first()
+    return jsonify([{
+        'id': friend.id,
+        'username': friend.username
+    } for friend in user.friends])
+
+# Отправка рекомендации
+@app.route('/send_recommendation', methods=['POST'])
+def send_recommendation():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    user = User.query.filter_by(username=session['username']).first()
+    
+    try:
+        for friend_id in data['friend_ids']:
+            recommendation = Recommendation(
+                sender_id=user.id,
+                receiver_id=friend_id,
+                event_id=data['event_id'] 
+            )
+            db.session.add(recommendation)
+        
+        db.session.commit()
+        return jsonify({"success": True})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/invitations')
+def invitations():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.filter_by(username=session['username']).first()
+    invites = Recommendation.query.options(
+        db.joinedload(Recommendation.event)
+        .joinedload(Event.tags)
+    ).filter_by(receiver_id=user.id).all()
+    
+    return render_template('invitations.html', invitations=invites)
+
+
+@app.route('/respond_invitation', methods=['POST'])
+def respond_invitation():
+    data = request.get_json()
+    recommendation = Recommendation.query.get_or_404(data['recommendation_id'])
+    user = User.query.filter_by(username=session['username']).first()
+
+    try:
+        if data['action'] == 'accept':
+            # Обновляем статус мероприятия
+            status = UserEventStatus.query.filter_by(
+                user_id=user.id,
+                event_id=recommendation.event_id
+            ).first()
+
+            if not status:
+                status = UserEventStatus(
+                    user_id=user.id,
+                    event_id=recommendation.event_id,
+                    status='planned'
+                )
+                db.session.add(status)
+            else:
+                status.status = 'planned'
+
+            # Помечаем рекомендацию как обработанную
+            db.session.delete(recommendation)
+
+        elif data['action'] == 'decline':
+            db.session.delete(recommendation)
+
+        db.session.commit()
+        return jsonify({"success": True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 
 

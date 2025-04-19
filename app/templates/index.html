@@ -12,6 +12,7 @@
                 <div class="user-menu" id="userMenu">
                     <a href="{{ url_for('logout') }}">Выйти</a>
                     <a href="{{ url_for('register') }}">Сменить аккаунт</a>
+                    <a href="{{ url_for('invitations') }}">Приглашения</a>
                     {% if session.role == 'organizer' %}
                         <a href="{{ url_for('add_event') }}">Добавить мероприятие</a>
                         <a href="{{ url_for('add_tag') }}">Добавить тег</a>

@@ -44,6 +44,15 @@
                 <button class="status-btn" data-status="attended">Посещено</button>
                 <button class="status-btn reset-btn" data-status="none">Сбросить</button>
             </div>
+            <div class="recommend-section">
+                <button onclick="toggleFriendList()" class="menu-btn">Рекомендовать другу</button>
+                <div id="friend-list-modal" class="friend-list-modal" style="display: none;">
+                    <h3>Выберите друзей</h3>
+                    <div id="modal-friends-container" class="friends-container"></div>
+                    <button onclick="sendRecommendation()" class="menu-btn">Отправить</button>
+                    <button onclick="toggleFriendList()" class="menu-btn">Отмена</button>
+                </div>
+            </div>
         </div>
     </div>
     <input type="hidden" id="modal-event-data" value="">

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Приглашения</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+    </div>
+    
+    <div class="posts-container">
+        <h2>Ваши приглашения</h2>
+        
+        {% if not invitations %}
+            <p class="empty-message">У вас нет новых приглашений</p>
+        {% endif %}
+        
+        {% for invitation in invitations %}
+            <div class="invitation-item" id="invitation-{{ invitation.id }}">
+                {% with post=invitation.event %}
+                    {% include 'post.html' %}
+                {% endwith %}
+                
+                <div class="invitation-meta">
+                    <p>Приглашение от: <strong>@{{ invitation.sender.username }}</strong></p>
+                        <button onclick="handleResponse({{ invitation.id }}, 'accept')" 
+                                class="menu-btn accept-btn">Запланировать</button>
+                        <button onclick="handleResponse({{ invitation.id }}, 'decline')" 
+                                class="menu-btn decline-btn">Отклонить</button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% include 'modal.html' %}
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -38,6 +38,10 @@ if (userContainer && userMenu) {
 }
 
 function handlePostClick(element) {
+    if (!document.getElementById('modal')) {
+        console.error('Модальное окно не инициализировано');
+        return;
+    }
     const eventData = {
         eventId: element.dataset.eventId,
         title: element.dataset.title,
@@ -61,6 +65,11 @@ function handlePostClick(element) {
 }
 
 function showModal(eventData) {
+    const modal = document.getElementById('modal');
+    if (!modal) {
+        console.error('Модальное окно не найдено!');
+        return;
+    }
     currentEventData = eventData;
     
     eventId = currentEventData.eventId;
@@ -314,12 +323,19 @@ function hideImageModal() {
     document.getElementById('image-modal').style.display = 'none';
 }
 
-// Закрытие по клику вне изображения
-document.getElementById('image-modal').addEventListener('click', function(e) {
-    if(e.target === this || e.target.classList.contains('image-container')) {
-        hideImageModal();
-    }
-})
+
+const imageModal = document.getElementById('image-modal');
+
+if (imageModal) {
+    imageModal.addEventListener('click', function(e) {
+        if(e.target === this || e.target.classList.contains('image-container')) {
+            hideImageModal();
+        }
+    })
+}
+else {
+    console.warn('Элемент #image-modal не найден, обработчик не добавлен.');
+}
 
 
 function hideModal() {
@@ -569,4 +585,99 @@ async function updatePrivacy(e) {
         console.error('Ошибка:', error);
         alert('Ошибка соединения');
     }
+}
+
+
+let selectedFriends = new Set();
+
+function toggleFriendList() {
+    const modal = document.getElementById('friend-list-modal');
+    if (modal.style.display === 'none') {
+        fetch('/get_friends')
+            .then(response => response.json())
+            .then(friends => {
+                const container = document.getElementById('modal-friends-container');
+                container.innerHTML = friends.map(friend => `
+                    <div class="friend-item" data-friend-id="${friend.id}">
+                        <label>
+                            <input type="checkbox" 
+                                   onchange="toggleFriendSelection(${friend.id})">
+                            ${friend.username}
+                        </label>
+                    </div>
+                `).join('');
+                modal.style.display = 'block';
+            });
+    } else {
+        modal.style.display = 'none';
+        selectedFriends.clear();
+    }
+}
+
+function toggleFriendSelection(friendId) {
+    if (selectedFriends.has(friendId)) {
+        selectedFriends.delete(friendId);
+    } else {
+        selectedFriends.add(friendId);
+    }
+}
+
+function sendRecommendation() {
+    if (!currentEventData || selectedFriends.size === 0) {
+        alert('Выберите друзей!');
+        return;
+    }
+    
+    fetch('/send_recommendation', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            event_id: currentEventData.eventId,
+            friend_ids: Array.from(selectedFriends)
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Ошибка сервера');
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            alert('Рекомендации отправлены!');
+            toggleFriendList();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка отправки: ' + error.message);
+    });
+}
+
+function respondToInvitation(invitationId, action) {
+    fetch('/respond_invitation', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            invitation_id: invitationId,
+            action: action
+        })
+    }).then(() => window.location.reload());
+}
+
+function handleResponse(recommendationId, action) {
+    const item = document.getElementById(`invitation-${recommendationId}`);
+    
+    fetch('/respond_invitation', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            recommendation_id: recommendationId,
+            action: action
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            item.classList.add('removing');
+            setTimeout(() => item.remove(), 300);
+        }
+    });
 }
