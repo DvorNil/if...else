@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Все пользователи</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+        {% if session.role in ['moderator', 'admin'] %}
+            <a href="{{ url_for('all_users') }}" class="menu-btn">Пользователи</a>
+        {% endif %}
+    </div>
+
+    <div class="posts-container">
+        <h2>Все пользователи</h2>
+        
+        <div class="search-container">
+            <form method="GET" action="{{ url_for('all_users') }}">
+                <input class="search-input" 
+                       type="text" 
+                       name="search" 
+                       placeholder="Поиск по имени..." 
+                       value="{{ search_query }}">
+                <button class="menu-btn" type="submit">Найти</button>
+            </form>
+        </div>
+
+        <div class="organizers-list">
+            {% for user in users %}
+                <div class="organizer-item" 
+                     onclick="window.location.href='{{ url_for('edit_user', user_id=user.id) }}'">
+                    <span>{{ user.username }}</span>
+                    <p>Роль: 
+                        {% set role_names = {
+                            'participant': 'Участник',
+                            'organizer': 'Организатор',
+                            'moderator': 'Модератор',
+                            'admin': 'Администратор'
+                        } %}
+                        {{ role_names.get(user.role, user.role) }}
+                    </p>
+                    <p>Описание: {{ user.description|default('Не указано', true) }}</p>
+                </div>
+            {% else %}
+                <p class="empty-message">Пользователи не найдены</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

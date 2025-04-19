@@ -777,3 +777,86 @@ input:checked + .slider:before {
     width: 300px;
     margin-right: 10px;
 }
+
+.organizers-list {
+    margin-top: 20px;
+    display: grid;
+    gap: 15px;
+}
+
+.organizer-item {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    transition: transform 0.2s, background 0.3s;
+    cursor: pointer;
+    border: 1px solid #333;
+}
+
+.organizer-item:hover {
+    transform: translateY(-3px);
+    background: #2a2a2a;
+    border-color: #ff6200;
+}
+
+.organizer-item p {
+    margin: 8px 0;
+    color: #aaa;
+}
+
+.organizer-item span {
+    font-size: 1.2em;
+    color: #ff6200;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.edit-organizer-container {
+    max-width: 800px;
+    margin: 100px auto 50px;
+    padding: 25px;
+    background: #1a1a1a;
+    border-radius: 10px;
+}
+
+.edit-organizer-form {
+    display: grid;
+    gap: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #ff6200;
+    font-weight: bold;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px;
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: white;
+    transition: border-color 0.3s;
+}
+
+.form-input:focus {
+    border-color: #ff6200;
+    outline: none;
+}
+
+.save-btn {
+    justify-self: start;
+    padding: 12px 35px;
+    background: #ff6200;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.save-btn:hover {
+    background: #ff4500;
+}

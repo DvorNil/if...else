@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Все организаторы</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+    </div>
+
+    <div class="posts-container">
+        <h2>Все организаторы</h2>
+        
+        <!-- Поиск организаторов -->
+        <div class="search-container">
+            <form method="GET" action="{{ url_for('all_organizers') }}">
+                <input class="search-input" 
+                       type="text" 
+                       name="search" 
+                       placeholder="Поиск по имени..." 
+                       value="{{ search_query }}">
+                <button class="menu-btn" type="submit">Найти</button>
+            </form>
+        </div>
+
+        <!-- Список организаторов -->
+        <div class="organizers-list">
+            {% for organizer in organizers %}
+                <div class="organizer-item" 
+                     onclick="window.location.href='{{ url_for('edit_organizer', organizer_id=organizer.id) }}'">
+                    <span>{{ organizer.username }}</span>
+                    <p>Email: {{ organizer.email }}</p>
+                    <p>Описание: {{ organizer.description|default('Не указано', true) }}</p>
+                </div>
+            {% else %}
+                <p class="empty-message">Организаторы не найдены</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

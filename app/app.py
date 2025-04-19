@@ -1117,13 +1117,83 @@ def all_events():
     events = Event.query.filter_by(is_active=True).all()
     return render_template('all_events.html', events=events)
 
+@app.route('/all_organizers')
+def all_organizers():
+    if 'username' not in session or session.get('role') not in ['moderator', 'admin']:
+        return redirect(url_for('home'))
+    
+    search_query = request.args.get('search', '').strip()
+    
+    # Получаем всех организаторов с фильтром по поиску
+    organizers_query = User.query.filter_by(role='organizer')
+    if search_query:
+        organizers_query = organizers_query.filter(User.username.ilike(f'%{search_query}%'))
+    
+    organizers = organizers_query.all()
+    return render_template('all_organizers.html', organizers=organizers, search_query=search_query)
 
+@app.route('/edit_organizer/<int:organizer_id>', methods=['GET', 'POST'])
+def edit_organizer(organizer_id):
+    if 'username' not in session or session.get('role') not in ['moderator', 'admin']:
+        return redirect(url_for('home'))
+    
+    organizer = User.query.get_or_404(organizer_id)
+    
+    if request.method == 'POST':
+        # Обновление данных
+        organizer.username = request.form.get('username', organizer.username)
+        organizer.occupation = request.form.get('occupation', organizer.occupation)
+        organizer.description = request.form.get('description', organizer.description)
+        
+        db.session.commit()
+        return redirect(url_for('all_organizers'))
+    
+    return render_template('edit_organizer.html', organizer=organizer)
 
+@app.route('/all_users')
+def all_users():
+    # Проверка авторизации
+    if 'username' not in session or session['role'] not in ['moderator', 'admin']:
+        return redirect(url_for('home'))
+    
+    search_query = request.args.get('search', '').strip()
+    
+    # Базовый запрос
+    users_query = User.query
+    
+    # Фильтрация в зависимости от роли
+    if session['role'] == 'moderator':
+        # Модератор видит всех, кроме других модераторов и админов
+        users_query = users_query.filter(User.role.notin_(['moderator', 'admin']))
+    elif session['role'] == 'admin':
+        # Админ видит всех, кроме других админов
+        users_query = users_query.filter(User.role != 'admin')
+    
+    # Применяем поиск, если есть запрос
+    if search_query:
+        users_query = users_query.filter(User.username.ilike(f'%{search_query}%'))
+    
+    users = users_query.all()
+    return render_template('all_users.html', users=users, search_query=search_query)
 
-
-
-
-
+@app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+def edit_user(user_id):
+    current_user = User.query.filter_by(username=session['username']).first()
+    target_user = User.query.get_or_404(user_id)
+    
+    # Проверка прав
+    if session['role'] == 'moderator' and target_user.role in ['admin', 'moderator']:
+        abort(403)
+    if session['role'] == 'admin' and target_user.role == 'admin':
+        abort(403)
+    
+    if request.method == 'POST':
+        target_user.username = request.form.get('username', target_user.username)
+        target_user.description = request.form.get('description', target_user.description)
+        db.session.commit()
+        return redirect(url_for('all_users'))
+    
+    return render_template('edit_user.html', user=target_user)
 
 
 
