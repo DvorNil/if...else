@@ -15,7 +15,7 @@
             {% if session.username %}
                 <div class="user-menu" id="userMenu">
                     <a href="{{ url_for('logout') }}">Выйти</a>
-                    <a href="{{ url_for('register') }}">Сменить аккаунт</a>
+                    <a href="{{ url_for('login') }}">Сменить аккаунт</a>
                     <a href="{{ url_for('invitations') }}">Приглашения</a>
                     <a href="{{ url_for('friends') }}">Друзья</a>
                     {% if session.role == 'organizer' %}
