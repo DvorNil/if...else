@@ -673,10 +673,33 @@ def my_events():
     if 'username' not in session or session['role'] != 'organizer':
         return redirect(url_for('home'))
     
-    user = User.query.filter_by(username=session['username']).first()
-    events = Event.query.filter_by(organizer_id=user.id, is_active=True).all()
+    search_query = request.args.get('search', '').strip()
+    selected_tag = request.args.get('tag', '').strip()
     
-    return render_template('my_events.html', events=events)
+    user = User.query.filter_by(username=session['username']).first()
+    
+    # Базовый запрос
+    query = Event.query.filter_by(organizer_id=user.id, is_active=True)
+    
+    if search_query:
+        query = query.filter(
+            (Event.title.ilike(f'%{search_query}%')) | 
+            (Event.description.ilike(f'%{search_query}%')) | 
+            (Event.event_type.ilike(f'%{search_query}%')) | 
+            (Event.location_name.ilike(f'%{search_query}%')) |
+            (Event.location_address.ilike(f'%{search_query}%')) |
+            (Event.tags.any(Tag.name.ilike(f'%{search_query}%')))
+        )
+    
+    if selected_tag:
+        tag = Tag.query.filter_by(name=selected_tag).first()
+        if tag:
+            query = query.join(Event.tags).filter(Tag.id == tag.id)
+    
+    events = query.all()
+    tags = Tag.query.all()
+    
+    return render_template('my_events.html', events=events, tags=tags)
 
 # Удаление мероприятия
 @app.route('/delete_event/<int:event_id>', methods=['DELETE'])

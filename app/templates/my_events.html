@@ -7,11 +7,50 @@
 <body>
     <div class="header">
         <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+        <div class="menu-buttons">
+            <div class="search-container">
+                <form method="GET" action="{{ url_for('my_events') }}">
+                    <input class="search-input" type="text" name="search" placeholder="Поиск..." value="{{ request.args.get('search', '') }}">
+                    <input type="hidden" name="tag" value="{{ request.args.get('tag', '') }}">
+                    <button class="menu-btn" type="submit">Поиск</button>
+                </form>
+            </div>
+            <select class="menu-btn" onchange="filterPosts('tag', this.value)">
+                <option value="">Все теги</option>
+                {% for tag in tags %}
+                    <option value="{{ tag.name }}" {% if tag.name == request.args.get('tag') %}selected{% endif %}>{{ tag.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
     </div>
     <div class="posts-container">
         <h2>Мои мероприятия</h2>
         {% for event in events %}
-        <div class="post">
+        <div class="post" 
+             data-event-id="{{ event.id }}"
+             data-title="{{ event.title | escape }}"
+             data-description="{{ event.description | escape }}"
+             data-location-name="{{ event.location_name | escape if event.location_name else '' }}"
+             data-tags="{{ event.tags|map(attribute='name')|join(', ') | escape }}"
+             data-event-type="{{ event.event_type | escape }}"
+             data-location-address="{{ event.location_address | escape if event.location_address else '' }}"
+             data-lat="{{ event.lat | default(0) }}"
+             data-lng="{{ event.lng | default(0) }}"
+             data-image-url="{{ event.image_url | default('', true) | escape }}"
+             data-is-private="{{ 'true' if event.is_private else 'false' }}"
+             data-format="{{ event.format }}"
+             data-online-info="{{ event.online_info | escape if event.online_info else '' }}"
+             data-date-time="{{ event.date_time.strftime('%Y-%m-%dT%H:%M:%S') }}" 
+             data-duration="{{ event.duration }}"
+             data-organizer-username="{{ event.organizer.username }}"
+             onclick="handlePostClick(this)">
+            {% if event.is_private %}
+                <div class="private-badge">Приватное</div>
+            {% endif %}
+            <img class="post-status-icon" 
+                src="/static/images/nullMini.png" 
+                alt="Status" 
+                style="display: none;">
             <img class="post-image" 
                  src="{{ url_for('static', filename=event.image_url) if event.image_url else url_for('static', filename='images/no-image.jpg') }}" 
                  alt="{{ event.title }}"
@@ -25,7 +64,7 @@
                     {% endfor %}
                 </p>
                 <p>Тип мероприятия: {{ event.event_type }}</p>
-                <p>Адрес: {{ event.location }}</p>
+                <p>Адрес: {{ event.location_address }}</p>
                 <div class="event-actions">
                     <a href="{{ url_for('edit_event', event_id=event.id) }}" class="menu-btn">Изменить</a>
                     <button onclick="confirmDelete({{ event.id }})" class="menu-btn delete-btn">Удалить</button>
@@ -49,6 +88,20 @@
                 });
             }
         }
+
+        function filterPosts(type, value) {
+            const searchInput = document.querySelector('input[name="search"]');
+            const form = document.querySelector('form');
+            
+            if (type === 'tag') {
+                const hiddenInput = document.querySelector('input[name="tag"]');
+                hiddenInput.value = value;
+            }
+            
+            form.submit();
+        }
     </script>
+    {% include 'modal.html' %}
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
