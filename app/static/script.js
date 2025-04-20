@@ -224,6 +224,8 @@ function showEventContent() {
     document.getElementById('modal-tags').textContent = e.tags;
     document.getElementById('modal-event-type').textContent = e.eventType;
     document.getElementById('event-id').value = e.eventId;
+    document.getElementById('modal-organizer').textContent = e.organizerUsername;
+    document.getElementById('modal-organizer-email').textContent = e.organizerEmail;
 
     const dateOptions = { 
         weekday: 'long', 
@@ -263,10 +265,12 @@ function showEventContent() {
     if (e.format === 'online') {
         document.getElementById('location-info').style.display = 'none';
         document.getElementById('online-info').style.display = 'block';
-        document.getElementById('modal-online-info').textContent = e.onlineInfo;
+        document.getElementById('modal-map').style.display = 'none'; // Скрываем карту
+        document.getElementById('modal-map').innerHTML = ''; // Очищаем контейнер
     } else {
         document.getElementById('location-info').style.display = 'block';
         document.getElementById('online-info').style.display = 'none';
+        document.getElementById('modal-map').style.display = 'block'; // Показываем карту
         document.getElementById('modal-location-name').textContent = e.locationName || "Не указано";
         document.getElementById('modal-location-address').textContent = e.locationAddress || "Не указан";
         
