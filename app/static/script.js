@@ -72,11 +72,14 @@ function showModal(eventData) {
         return;
     }
     currentEventData = eventData;
-    
     eventId = currentEventData.eventId;
-
+    eventData.tempAccess = false;
+    if (eventData.isPrivate && !checkAccess()) {
+        showPasswordPrompt();
+    } else {
+        showEventContent();
+    }
     const statusIcon = document.getElementById('status-icon');
-
     document.getElementById('modal').style.display = 'block';
     
     if (!statusIcon) {
@@ -196,17 +199,13 @@ function checkEventPassword() {
     
     fetch(`/check_event_password/${eventId}`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ password: password })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Сохраняем доступ
-            localStorage.setItem(`event_${eventId}_access`, 'granted');
-            // Показываем полное содержимое
+            currentEventData.tempAccess = true; // Временный флаг
             showEventContent();
         } else {
             alert('Неверный пароль');
@@ -312,9 +311,10 @@ function loadEventStatus(eventId) { //функция вообще не прим�
         });
 }
 
-function checkAccess(eventId) {
-    return localStorage.getItem(`event_${eventId}_access`) === 'granted';
+function checkAccess() {
+    return currentEventData?.tempAccess === true;
 }
+
 
 // Новые функции для управления модалкой изображения
 function showImageModal(src) {
@@ -347,6 +347,10 @@ function hideModal() {
     const modalImg = document.getElementById('modal-image');
     const statusIcon = document.getElementById('status-icon');
     
+    if (currentEventData) {
+        currentEventData.tempAccess = false;
+    }
+
    // modalImg.src = '/static/images/no-image.jpg';
     statusIcon.style.display = 'none'; // Скрываем иконку при закрытии
     document.getElementById('modal').style.display = 'none';
