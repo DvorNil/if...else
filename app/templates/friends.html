@@ -3,6 +3,69 @@
 <head>
     <title>Друзья и запросы</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .collapsible {
+            background: #2a2a2a;
+            color: #ff6200;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            text-align: left;
+            outline: none;
+            font-size: 1.1em;
+            border-radius: 5px;
+            margin: 10px 0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .collapsible:after {
+            content: '\002B';
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        
+        .active:after {
+            content: "\2212";
+        }
+        
+        .content {
+            padding: 0 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background: #1a1a1a;
+            border-radius: 0 0 5px 5px;
+            margin-bottom: 20px;
+        }
+        
+        .search-container {
+            margin: 15px 0;
+        }
+        
+        .friend-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        
+        .friend-item:hover {
+            background: #333;
+            transform: translateX(5px);
+        }
+        
+        .friend-description {
+            color: #aaa;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -25,25 +88,34 @@
             </div>
         </div>
 
-        <!-- Входящие запросы -->
-        <div class="friend-requests-section">
-            <h3>
-                Входящие запросы
-                {% if pending_friend_requests > 0 %}
-                    <span class="notification-badge">{{ pending_friend_requests }}</span>
-                {% endif %}
-            </h3>
+        <button class="collapsible">
+            Входящие запросы
+            {% if pending_friend_requests > 0 %}
+                <span class="notification-badge">{{ pending_friend_requests }}</span>
+            {% endif %}
+        </button>
+        <div class="content">
             <div id="friend-requests-list"></div>
         </div>
 
         <!-- Список друзей -->
-        <div class="friends-list-section">
-            <h3>Ваши друзья</h3>
-            <div class="friends-container">
+        <button class="collapsible">Ваши друзья ({{ user.friends|length }})</button>
+        <div class="content">
+            <div class="search-container">
+                <input type="text" id="friends-search" class="search-input" placeholder="Поиск по имени или описанию">
+            </div>
+            <div class="friends-container" id="friends-list">
                 {% for friend in user.friends %}
                     <a href="{{ url_for('user_profile', username=friend.username) }}" 
-                       class="friend-item">
-                        <span>{{ friend.username }}</span>
+                       class="friend-item searchable" data-search="{{ friend.username }} {{ friend.description or '' }}">
+                        <img src="{{ friend.avatar_url or url_for('static', filename='images/default-avatar.png') }}" 
+                             class="user-avatar" alt="{{ friend.username }}">
+                        <div>
+                            <span>{{ friend.username }}</span>
+                            {% if friend.description %}
+                                <p class="friend-description">{{ friend.description|truncate(50) }}</p>
+                            {% endif %}
+                        </div>
                     </a>
                 {% else %}
                     <p class="empty-message">У вас пока нет друзей</p>
@@ -52,6 +124,38 @@
         </div>
     </div>
 
+    <script>
+        const coll = document.getElementsByClassName("collapsible");
+        for (let i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                const content = this.nextElementSibling;
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+            });
+        }
+
+        document.getElementById('friends-search')?.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('#friends-list .searchable');
+            
+            items.forEach(item => {
+                const text = item.dataset.search.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        {% if pending_friend_requests > 0 %}
+            document.querySelector('.collapsible').click();
+        {% endif %}
+    </script>
     {% include 'modal.html' %}
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

@@ -10,6 +10,24 @@
     </div>
     <div class="posts-container">
         <h2>Все мероприятия</h2>
+        
+        <form method="GET" action="{{ url_for('all_events') }}" class="search-form">
+            <div class="search-container">
+                <input type="text" name="search" placeholder="Поиск мероприятий..." 
+                       value="{{ request.args.get('search', '') }}">
+                <input type="hidden" name="tag" value="{{ request.args.get('tag', '') }}">
+                <button type="submit" class="menu-btn">Поиск</button>
+            </div>
+            <div class="tags-container">
+                {% for tag in tags %}
+                    <span class="tag {% if request.args.get('tag') == tag.name %}active{% endif %}" 
+                          onclick="filterPosts('tag', '{{ tag.name }}')">
+                        {{ tag.name }}
+                    </span>
+                {% endfor %}
+            </div>
+        </form>
+
         {% for event in events %}
         <div class="post">
             <img class="post-image" 
@@ -36,6 +54,15 @@
         {% endfor %}
     </div>
 
+    <script>
+        function filterPosts(type, value) {
+            const form = document.querySelector('form');
+            if (type === 'tag') {
+                form.querySelector('input[name="tag"]').value = value;
+            }
+            form.submit();
+        }
+    </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

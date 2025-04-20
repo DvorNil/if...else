@@ -3,6 +3,71 @@
 <head>
     <title>Подтверждение статуса</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .collapsible {
+            background: #2a2a2a;
+            color: #ff6200;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            text-align: left;
+            outline: none;
+            font-size: 1.1em;
+            border-radius: 5px;
+            margin: 10px 0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .collapsible:after {
+            content: '\002B';
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        
+        .active:after {
+            content: "\2212";
+        }
+        
+        .content {
+            padding: 0 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background: #1a1a1a;
+            border-radius: 0 0 5px 5px;
+            margin-bottom: 20px;
+        }
+        
+        .search-container {
+            margin: 15px 0;
+        }
+        
+        .users-list {
+            display: grid;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .user-item {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        
+        .user-item p {
+            margin: 8px 0;
+        }
+        
+        .user-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -16,11 +81,48 @@
 
     <div class="posts-container">
         {% if session.role == 'admin' %}
-            <h2>Модераторы на подтверждение</h2>
-            {% if moderators %}
-                <div class="users-list">
-                    {% for current_user in moderators %}
-                        <div class="user-item">
+            <button class="collapsible">Модераторы на подтверждение ({{ moderators|length }})</button>
+            <div class="content">
+                <div class="search-container">
+                    <input type="text" id="moderator-search" class="search-input" placeholder="Поиск по имени, email или комментарию">
+                </div>
+                {% if moderators %}
+                    <div class="users-list" id="moderators-list">
+                        {% for current_user in moderators %}
+                            <div class="user-item searchable" data-search="{{ current_user.username }} {{ current_user.email }} {{ current_user.comment or '' }}">
+                                <p><strong>Имя:</strong> {{ current_user.username }}</p>
+                                <p><strong>Email:</strong> {{ current_user.email }}</p>
+                                {% if current_user.comment %}
+                                    <p><strong>Комментарий:</strong> {{ current_user.comment }}</p>
+                                {% endif %}
+                                <div class="user-actions">
+                                    <button class="menu-btn accept-btn" 
+                                            onclick="validateUser('{{ current_user.id }}', 'moderator', true)">
+                                        Подтвердить
+                                    </button>
+                                    <button class="menu-btn reject-btn" 
+                                            onclick="validateUser('{{ current_user.id }}', 'moderator', false)">
+                                        Отклонить
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="empty-message">Нет модераторов на подтверждение</p>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <button class="collapsible">Организаторы на подтверждение ({{ organizers|length }})</button>
+        <div class="content">
+            <div class="search-container">
+                <input type="text" id="organizer-search" class="search-input" placeholder="Поиск по имени, email или комментарию">
+            </div>
+            {% if organizers %}
+                <div class="users-list" id="organizers-list">
+                    {% for current_user in organizers %}
+                        <div class="user-item searchable" data-search="{{ current_user.username }} {{ current_user.email }} {{ current_user.comment or '' }}">
                             <p><strong>Имя:</strong> {{ current_user.username }}</p>
                             <p><strong>Email:</strong> {{ current_user.email }}</p>
                             {% if current_user.comment %}
@@ -28,11 +130,11 @@
                             {% endif %}
                             <div class="user-actions">
                                 <button class="menu-btn accept-btn" 
-                                        onclick="validateUser('{{ current_user.id }}', 'moderator', true)">
+                                        onclick="validateUser('{{ current_user.id }}', 'organizer', true)">
                                     Подтвердить
                                 </button>
                                 <button class="menu-btn reject-btn" 
-                                        onclick="validateUser('{{ current_user.id }}', 'moderator', false)">
+                                        onclick="validateUser('{{ current_user.id }}', 'organizer', false)">
                                     Отклонить
                                 </button>
                             </div>
@@ -40,36 +142,9 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <p>Нет модераторов на подтверждение</p>
+                <p class="empty-message">Нет организаторов на подтверждение</p>
             {% endif %}
-        {% endif %}
-
-        <h2>Организаторы на подтверждение</h2>
-        {% if organizers %}
-            <div class="users-list">
-                {% for current_user in organizers %}
-                    <div class="user-item">
-                        <p><strong>Имя:</strong> {{ current_user.username }}</p>
-                        <p><strong>Email:</strong> {{ current_user.email }}</p>
-                        {% if current_user.comment %}
-                            <p><strong>Комментарий:</strong> {{ current_user.comment }}</p>
-                        {% endif %}
-                        <div class="user-actions">
-                            <button class="menu-btn accept-btn" 
-                                    onclick="validateUser('{{ current_user.id }}', 'organizer', true)">
-                                Подтвердить
-                            </button>
-                            <button class="menu-btn reject-btn" 
-                                    onclick="validateUser('{{ current_user.id }}', 'organizer', false)">
-                                Отклонить
-                            </button>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p>Нет организаторов на подтверждение</p>
-        {% endif %}
+        </div>
     </div>
 
     <script>
@@ -93,6 +168,51 @@
                     alert('Ошибка: ' + data.error);
                 }
             });
+        }
+
+        const coll = document.getElementsByClassName("collapsible");
+        for (let i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                const content = this.nextElementSibling;
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+            });
+        }
+
+        document.getElementById('moderator-search')?.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('#moderators-list .searchable');
+            
+            items.forEach(item => {
+                const text = item.dataset.search.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('organizer-search')?.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('#organizers-list .searchable');
+            
+            items.forEach(item => {
+                const text = item.dataset.search.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        if (document.querySelector('.collapsible')) {
+            document.querySelector('.collapsible').click();
         }
     </script>
 </body>
