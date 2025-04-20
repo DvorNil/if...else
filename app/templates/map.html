@@ -27,7 +27,7 @@
 </head>
 <body>
     <div class="controls">
-        <a href="{{ url_for('home') }}" class="menu-btn">Назад</a>
+        <a href="{{ url_for('home') }}" class="menu-btn">Назад</a>  
     </div>
     <div id="map">{{ map_html|safe }}</div>
     
@@ -57,11 +57,11 @@
         
         function showEventFromMap(eventId) {
             const eventData = window.eventsData[eventId];
+            
             if (!eventData) {
                 console.error('Event data not found for ID:', eventId);
                 return;
             }
-            
             // Преобразуем данные для совместимости с showModal
             const modalEventData = {
                 eventId: eventData.id,

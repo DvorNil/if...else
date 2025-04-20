@@ -538,7 +538,7 @@ def resend_confirmation():
 # Страница карты
 @app.route('/map', methods=['GET'])
 def show_map():
-    events = Event.query.filter_by(is_active=True).all()
+    events = Event.query.filter_by(is_active=True, is_private=False).all()
     m = folium.Map(location=[53.9, 27.5667], zoom_start=7)
     
     for event in events:
