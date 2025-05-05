@@ -1369,6 +1369,5 @@ def inject_friend_requests_count():
             return {'pending_friend_requests': pending_requests}
     return {}
 
-
 if __name__ == '__main__':
     app.run(debug=True)

@@ -18,13 +18,31 @@
             cursor: pointer;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: right;
+            position: relative;
+            padding-left: 40px; 
         }
         
         .collapsible:after {
             content: '\002B';
             font-weight: bold;
             margin-left: 5px;
+            right: 15px;
+            left: auto;
+        }
+
+        .notification-badge {
+            position: absolute;
+            left: 230px;
+            top: 50%;
+            background: #ff4444;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 8px;
+            font-size: 0.8em;
+            margin-left: 5px;
+            transform: translateY(-50%);
+            vertical-align: middle;
         }
         
         .active:after {
@@ -40,7 +58,7 @@
             border-radius: 0 0 5px 5px;
             margin-bottom: 20px;
         }
-        
+
         .search-container {
             margin: 15px 0;
         }
@@ -108,8 +126,9 @@
                 {% for friend in user.friends %}
                     <a href="{{ url_for('user_profile', username=friend.username) }}" 
                        class="friend-item searchable" data-search="{{ friend.username }} {{ friend.description or '' }}">
-                        <img src="{{ friend.avatar_url or url_for('static', filename='images/default-avatar.png') }}" 
-                             class="user-avatar" alt="{{ friend.username }}">
+                       <img src="{% if friend.avatar_url %}/static/{{ friend.avatar_url }}{% else %}{{ url_for('static', filename='images/default-avatar.png') }}{% endif %}"
+                            class="user-avatar"
+                            alt="{{ friend.username }}">
                         <div>
                             <span>{{ friend.username }}</span>
                             {% if friend.description %}
@@ -138,19 +157,23 @@
             });
         }
 
-        document.getElementById('friends-search')?.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const items = document.querySelectorAll('#friends-list .searchable');
-            
-            items.forEach(item => {
-                const text = item.dataset.search.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
+        document.getElementById('friend-search')?.addEventListener('input', function(e) {
+    const query = e.target.value.trim();
+    
+    fetch(`/search_users?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(users => {
+            const results = users.map(user => `
+                <a href="/user/${user.username}" class="search-result-item">
+                    <img src="${user.avatar_url ? '/static/' + user.avatar_url : '/static/images/default-avatar.png'}"
+                         class="user-avatar"
+                         alt="${user.username}">
+                    <span>${user.username}</span>
+                </a>
+            `).join('');
+            document.getElementById('search-results').innerHTML = results;
         });
+});
 
         {% if pending_friend_requests > 0 %}
             document.querySelector('.collapsible').click();
