@@ -69,6 +69,22 @@
             </form>
         </div>
 
+        <div class="2fa-section">
+            <h3>Двухфакторная аутентификация</h3>
+            {% if user.is_2fa_enabled %}
+                <p>Статус: <span style="color: green;">Активирована</span></p>
+                <button class="menu-btn" onclick="disable2FA()">Отключить 2FA</button>
+            {% else %}
+                <button class="menu-btn" onclick="enable2FA()">Включить 2FA</button>
+                <div id="2fa-setup" style="display: none;">
+                    <img id="2fa-qrcode" src="" alt="QR Code">
+                    <p>Секретный ключ: <span id="2fa-secret"></span></p>
+                    <input type="text" id="2fa-code" placeholder="Введите код из приложения">
+                    <button class="menu-btn" onclick="verify2FA()">Подтвердить</button>
+                </div>
+            {% endif %}
+        </div>
+
         <!-- Список посещенных мероприятий -->
         <details class="events-section">
             <summary>Посещенные мероприятия</summary>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Подтверждение 2FA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+    </div>
+    
+    <div class="auth-container twofa-container">
+        <h2>Двухфакторная аутентификация</h2>
+        
+        <!-- Контейнер для ошибок -->
+        <div id="error-container" class="error-container">
+            {% if error %}
+                <div class="alert alert-error">{{ error }}</div>
+            {% endif %}
+        </div>
+
+        <form id="2fa-form" onsubmit="handle2FALogin(event)">
+            <input type="text" 
+                   name="code" 
+                   id="2fa-code"
+                   class="twofa-code-input"
+                   placeholder="Введите 6-значный код"
+                   pattern="\d{6}"
+                   maxlength="6"
+                   required>
+            
+            <button type="submit" class="menu-btn twofa-submit-btn">
+                Подтвердить
+            </button>
+        </form>
+
+        <div class="twofa-help">
+            <p class="twofa-help-text">
+                Откройте приложение аутентификатора и введите текущий 6-значный код
+            </p>
+        </div>
+    </div>
+
+    <script>
+        async function handle2FALogin(event) {
+            event.preventDefault();
+            const code = document.getElementById('2fa-code').value;
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/verify-2fa-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    window.location.href = data.redirect;
+                } else {
+                    throw new Error(data.error || 'Ошибка подтверждения кода');
+                }
+            } catch (error) {
+                errorContainer.innerHTML = `
+                    <div class="alert alert-error">
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function getCSRFToken() {
+            const cookie = document.cookie.split('; ')
+                .find(row => row.startsWith('csrftoken='));
+            return cookie ? cookie.split('=')[1] : '';
+        }
+    </script>
+</body>
+</html>

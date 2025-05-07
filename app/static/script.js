@@ -761,3 +761,54 @@ async function updateAvatar(e) {
         console.error('Error:', error);
     }
 }
+
+function enable2FA() {
+    fetch('/generate-2fa-secret', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('2fa-setup').style.display = 'block';
+            document.getElementById('2fa-secret').textContent = data.secret;
+            document.getElementById('2fa-qrcode').src = data.qrcode;
+        });
+}
+
+// Для активации 2FA в профиле
+function verify2FA() {
+    const code = document.getElementById('2fa-code').value;
+    fetch('/verify-2fa-setup', {  // Изменили URL
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code })
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Неверный код!');
+        }
+    });
+}
+
+// Для входа с 2FA (новый обработчик)
+function verifyLogin2FA(code) {
+    fetch('/verify-2fa-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code })
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.href = '/';
+        } else {
+            showError('Неверный код подтверждения');
+        }
+    });
+}
+
+
+function disable2FA() {
+    if (confirm('Вы уверены, что хотите отключить двухфакторную аутентификацию?')) {
+        fetch('/disable-2fa', { method: 'POST' })
+            .then(() => window.location.reload());
+    }
+}

@@ -10,6 +10,11 @@ from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import func
 
+from pyotp import TOTP, random_base32
+import qrcode
+from io import BytesIO
+import base64
+
 app = Flask(__name__)
 app.secret_key = '6jujmgkxze4png8ch3xg8r3052a01ia'
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -55,7 +60,8 @@ class User(db.Model):
     avatar_url = db.Column(db.String(200), nullable=True)
     validation = db.Column(db.String(20), nullable=True)
     comment = db.Column(db.Text, nullable=True)
-
+    totp_secret = db.Column(db.String(32), nullable=True)
+    is_2fa_enabled = db.Column(db.Boolean, default=False, nullable=False)
     favorite_organizers = db.relationship(
         'User', 
         secondary='user_organizer',
@@ -325,6 +331,10 @@ def login():
             if not user.email_confirmed:
                 return render_template('login.html', error="Пожалуйста, подтвердите ваш email перед входом.")
             
+            if user.is_2fa_enabled:
+                session['pending_2fa_user'] = user.username
+                return redirect(url_for('verify_2fa_login'))
+
             session['username'] = username
             session['role'] = user.role
             return redirect(url_for('home'))
@@ -890,7 +900,8 @@ def profile():
                          role=role,
                          attended_events=attended_events,
                          planned_events=planned_events,
-                         description = user.description)
+                         description = user.description,
+                         is_2fa_enabled = user.is_2fa_enabled)
 
 
 @app.route('/update_description', methods=['POST'])
@@ -1434,12 +1445,90 @@ def reset_password(token):
     
     return render_template('reset_password.html')
 
+# Генерация секрета для 2FA (активация в профиле)
+@app.route('/generate-2fa-secret', methods=['POST'])
+def generate_2fa_secret():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(username=session['username']).first()
+    secret = random_base32()
+    user.totp_secret = secret
+    db.session.commit()
+    
+    # Генерация QR-кода
+    totp_uri = TOTP(secret).provisioning_uri(user.email, issuer_name="EventHub")
+    img = qrcode.make(totp_uri)
+    buffered = BytesIO()
+    img.save(buffered)
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    
+    return jsonify({
+        "secret": secret,
+        "qrcode": f"data:image/png;base64,{img_str}"
+    })
 
+# Подтверждение активации 2FA (в профиле)
+@app.route('/verify-2fa-setup', methods=['POST'])
+def verify_2fa_setup():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(username=session['username']).first()
+    code = request.json.get('code')
+    
+    if TOTP(user.totp_secret).verify(code):
+        user.is_2fa_enabled = True
+        db.session.commit()
+        return jsonify({"success": True})
+    
+    return jsonify({"error": "Invalid code"}), 400
 
+# Отключение 2FA
+@app.route('/disable-2fa', methods=['POST'])
+def disable_2fa():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(username=session['username']).first()
+    user.totp_secret = None
+    user.is_2fa_enabled = False
+    db.session.commit()
+    return jsonify({"success": True})
 
-
-
-
+# Обработка 2FA при входе
+@app.route('/verify-2fa-login', methods=['GET', 'POST'])
+def verify_2fa_login():
+    if request.method == 'GET':
+        # Проверка наличия временной сессии
+        if 'pending_2fa_user' not in session:
+            return redirect(url_for('login'))
+        return render_template('verify_2fa.html')
+    
+    if 'pending_2fa_user' not in session:
+        return jsonify({"error": "Сессия устарела"}), 401
+    
+    username = session['pending_2fa_user']
+    user = User.query.filter_by(username=username).first()
+    
+    if not user or not user.totp_secret:
+        return jsonify({"error": "Ошибка аутентификации"}), 400
+    
+    code = request.json.get('code', '')
+    
+    # Проверка кода с окном в 2 периода (60 секунд)
+    if not TOTP(user.totp_secret).verify(code, valid_window=2):
+        return jsonify({"error": "Неверный код подтверждения"}), 400
+    
+    # Обновление сессии
+    session['username'] = user.username
+    session['role'] = user.role
+    session.pop('pending_2fa_user', None)
+    
+    return jsonify({
+        "success": True,
+        "redirect": url_for('home')
+    })
 
 
 
