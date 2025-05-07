@@ -25,6 +25,7 @@ app.config['MAIL_PASSWORD'] = 'dzfo lmul vkkv yymx'
 app.config['MAIL_DEFAULT_SENDER'] = 'tesamye.ifelse@gmail.com'
 app.config['SECRET_KEY'] = '6jujmgkxze4png8ch3xg8r3052a01ia'
 app.config['SECURITY_PASSWORD_SALT'] = 'salt52n1o0jnv2omiv0kmn94aoaomm6sex5'
+app.config['SECURITY_PASSWORD_RESET_SALT'] = 'passwordreset1xms4p9t8qyiapwpe2zsq'
 app.config['MAX_AVATAR_SIZE'] = 2 * 1024 * 1024  # 2MB
 Session(app)
 db = SQLAlchemy(app)
@@ -1368,6 +1369,92 @@ def inject_friend_requests_count():
             ).count()
             return {'pending_friend_requests': pending_requests}
     return {}
+
+# Сброс пароля
+@app.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = User.query.filter_by(email=email).first()
+        
+        if user:
+            try:
+                # Генерация токена с отдельной солью
+                token = serializer.dumps(
+                    email, 
+                    salt=app.config['SECURITY_PASSWORD_RESET_SALT']
+                )
+                reset_url = url_for('reset_password', token=token, _external=True)
+                
+                # Отправка письма
+                msg = Message(
+                    subject="Сброс пароля для EventHub",
+                    recipients=[user.email],
+                    html=render_template(
+                        'reset_password_email.html',
+                        reset_url=reset_url
+                    )
+                )
+                mail.send(msg)
+            except Exception as e:
+                app.logger.error(f"Ошибка отправки письма: {str(e)}")
+        
+        # Всегда показываем одинаковое сообщение для безопасности
+        return render_template('reset_password_request.html',
+                             message="Если аккаунт с таким email существует, инструкции отправлены на почту")
+    
+    return render_template('reset_password_request.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = serializer.loads(
+            token,
+            salt=app.config['SECURITY_PASSWORD_RESET_SALT'],
+            max_age=3600  # 1 час
+        )
+    except:
+        return render_template('reset_password_request.html', 
+                             error="Ссылка для сброса пароля недействительна или срок её действия истек")
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        new_password = request.form.get('password')
+        
+        # Обновляем пароль
+        user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        db.session.commit()
+        
+        # Очищаем сессии и перенаправляем на вход
+        session.clear()
+        return redirect(url_for('login', _anchor='password-reset-success'))
+    
+    return render_template('reset_password.html')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

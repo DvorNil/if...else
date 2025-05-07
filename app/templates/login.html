@@ -8,6 +8,9 @@
     <div class="header">
         <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
     </div>
+    {% if request.args.get('_anchor') == 'password-reset-success' %}
+        <p style="color: green;">Пароль успешно изменён! Войдите с новым паролем.</p>
+    {% endif %}
     <div class="posts-container">
         <h2>Вход</h2>
         {% if error %}
@@ -19,6 +22,10 @@
             <label>Пароль:</label><br>
             <input class="search-input" type="password" name="password" required><br><br>
             <button type="submit" class="menu-btn">Войти</button>
+
+            <p style="margin-top: 15px;">
+                <a href="{{ url_for('reset_password_request') }}" class="text-link-login">Забыли пароль?</a>
+            </p>
         </form>
     </div>
 </body>
