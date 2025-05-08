@@ -164,7 +164,6 @@ body {
 }
 
 .tags {
-    font-size: 0.9em;
     color: #ff6200;
 }
 
@@ -319,6 +318,13 @@ body {
     border-radius: 12px;
     font-size: 0.8em;
     color: #555;
+    transition: all 0.3s ease;
+}
+
+.tag.favorite-tag {
+    background-color: #ff6200;
+    color: white;
+    box-shadow: 0 2px 5px rgba(255, 98, 0, 0.3);
 }
 
 .event-actions {

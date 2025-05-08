@@ -32,7 +32,12 @@
                     <p>{{ post.description|truncate(100) }}</p>
                     <p class="tags">Теги: 
                         {% for tag in post.tags %}
-                            <span class="tag">{{ tag.name }}</span>
+                            <span class="tag 
+                                {% if session.username %} 
+                                    {% if tag in current_user.favorite_tags %}favorite-tag{% endif %} 
+                                {% endif %}">
+                                {{ tag.name }}
+                            </span>
                         {% endfor %}
                     </p>
                     <p>Тип мероприятия: {{ post.event_type }}</p>
