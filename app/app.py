@@ -9,6 +9,7 @@ import folium
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import func
+from datetime import datetime, timedelta
 
 from pyotp import TOTP, random_base32
 import qrcode
@@ -32,6 +33,7 @@ app.config['SECRET_KEY'] = '6jujmgkxze4png8ch3xg8r3052a01ia'
 app.config['SECURITY_PASSWORD_SALT'] = 'salt52n1o0jnv2omiv0kmn94aoaomm6sex5'
 app.config['SECURITY_PASSWORD_RESET_SALT'] = 'passwordreset1xms4p9t8qyiapwpe2zsq'
 app.config['MAX_AVATAR_SIZE'] = 2 * 1024 * 1024  # 2MB
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 Session(app)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -169,6 +171,14 @@ class Recommendation(db.Model):
     receiver = db.relationship('User', foreign_keys=[receiver_id])
     event = db.relationship('Event')
 
+# Модель для отслеживания попыток ввода кода
+class TwoFAAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    attempts = db.Column(db.Integer, default=0)
+    last_attempt = db.Column(db.DateTime)
+    blocked_until = db.Column(db.DateTime)
+
 # Создание таблиц и добавление начальных данных
 with app.app_context():
     db.create_all()
@@ -278,6 +288,10 @@ with app.app_context():
 # Вспомогательная функция для проверки расширения файла
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
 @app.context_processor
 def inject_user():
@@ -1497,39 +1511,72 @@ def disable_2fa():
     return jsonify({"success": True})
 
 # Обработка 2FA при входе
-@app.route('/verify-2fa-login', methods=['GET', 'POST'])
+@app.route("/verify-2fa-login", methods=["GET", "POST"])
 def verify_2fa_login():
-    if request.method == 'GET':
-        # Проверка наличия временной сессии
-        if 'pending_2fa_user' not in session:
-            return redirect(url_for('login'))
-        return render_template('verify_2fa.html')
-    
-    if 'pending_2fa_user' not in session:
-        return jsonify({"error": "Сессия устарела"}), 401
-    
-    username = session['pending_2fa_user']
-    user = User.query.filter_by(username=username).first()
-    
-    if not user or not user.totp_secret:
-        return jsonify({"error": "Ошибка аутентификации"}), 400
-    
-    code = request.json.get('code', '')
-    
-    # Проверка кода с окном в 2 периода (60 секунд)
-    if not TOTP(user.totp_secret).verify(code, valid_window=2):
-        return jsonify({"error": "Неверный код подтверждения"}), 400
-    
-    # Обновление сессии
-    session['username'] = user.username
-    session['role'] = user.role
-    session.pop('pending_2fa_user', None)
-    
-    return jsonify({
-        "success": True,
-        "redirect": url_for('home')
-    })
+    try:
+        # GET: Показать страницу ввода кода
+        if request.method == "GET":
+            if "pending_2fa_user" not in session:
+                return redirect(url_for("login"))
+            return render_template("verify_2fa.html")
 
+        # POST: Проверить код
+        if "pending_2fa_user" not in session:
+            return jsonify({"error": "Сессия устарела"}), 401
+
+        username = session["pending_2fa_user"]
+        user = User.query.filter_by(username=username).first()
+        
+        if not user:
+            app.logger.error(f"User {username} not found in database")
+            return jsonify({"error": "Ошибка аутентификации"}), 400
+
+        # Создаем запись TwoFAAttempt при первой попытке
+        attempt = TwoFAAttempt.query.filter_by(user_id=user.id).first()
+        if not attempt:
+            attempt = TwoFAAttempt(user_id=user.id)
+            db.session.add(attempt)
+            db.session.commit()  # Фиксируем сразу
+
+        code = request.json.get("code", "")
+        
+        # Проверка блокировки
+        if attempt.blocked_until and attempt.blocked_until > datetime.utcnow():
+            return jsonify({
+                "error": f"Вход заблокирован до {(attempt.blocked_until + timedelta(hours=3)).strftime('%H:%M')}"
+            }), 429
+
+        # Проверка кода
+        if not TOTP(user.totp_secret).verify(code, valid_window=2):
+            attempt.attempts += 1
+            attempt.last_attempt = datetime.utcnow()
+            
+            if attempt.attempts >= 5:
+                attempt.blocked_until = datetime.utcnow() + timedelta(hours=1)
+            
+            db.session.commit()
+            remaining = 5 - attempt.attempts
+            if remaining == 0:
+                return jsonify({
+                    "error": f"Вход заблокирован до {(attempt.blocked_until + timedelta(hours=3)).strftime('%H:%M')}"
+                }), 429
+            return jsonify({
+                "error": f"Неверный код. Осталось попыток: {remaining}"
+            }), 400
+
+        # Успешная аутентификация
+        db.session.delete(attempt)
+        db.session.commit()
+        
+        session.pop("pending_2fa_user", None)
+        session["username"] = user.username
+        session["role"] = user.role
+        
+        return jsonify({"success": True, "redirect": url_for("home")})
+
+    except Exception as e:
+        app.logger.error(f"2FA Error: {str(e)}", exc_info=True)
+        return jsonify({"error": "Внутренняя ошибка сервера"}), 500
 
 
 

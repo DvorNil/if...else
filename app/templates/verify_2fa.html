@@ -44,40 +44,36 @@
     <script>
         async function handle2FALogin(event) {
             event.preventDefault();
-            const code = document.getElementById('2fa-code').value;
-            const errorContainer = document.getElementById('error-container');
-            errorContainer.innerHTML = '';
-
+            const errorContainer = document.getElementById("error-container");
+            errorContainer.innerHTML = "";
+            
             try {
-                const response = await fetch('/verify-2fa-login', {
-                    method: 'POST',
+                const code = document.getElementById("2fa-code").value;
+                
+                const response = await fetch("/verify-2fa-login", {
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken()
+                        "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ code: code })
+                    body: JSON.stringify({ code })
                 });
-
+                
                 const data = await response.json();
-
-                if (response.ok) {
-                    window.location.href = data.redirect;
-                } else {
-                    throw new Error(data.error || 'Ошибка подтверждения кода');
+                
+                if (!response.ok) {
+                    throw new Error(data.error || "Неизвестная ошибка");
                 }
+                
+                window.location.href = data.redirect;
+                
             } catch (error) {
                 errorContainer.innerHTML = `
                     <div class="alert alert-error">
                         ${error.message}
                     </div>
                 `;
+                document.getElementById("2fa-code").value = "";
             }
-        }
-
-        function getCSRFToken() {
-            const cookie = document.cookie.split('; ')
-                .find(row => row.startsWith('csrftoken='));
-            return cookie ? cookie.split('=')[1] : '';
         }
     </script>
 </body>
