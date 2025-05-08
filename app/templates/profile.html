@@ -48,6 +48,7 @@
             <button class="tab-btn active" onclick="switchTab('about')">О себе</button>
             <button class="tab-btn" onclick="switchTab('security')">Безопасность</button>
             <button class="tab-btn" onclick="switchTab('events')">Мероприятия</button>
+            <button class="tab-btn" onclick="switchTab('interests')">Интересы</button>
         </div>
 
         <!-- Вкладка "О себе" -->
@@ -153,6 +154,33 @@
                     {% else %}
                         <p class="empty-message">Нет запланированных мероприятий</p>
                     {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Вкладка "Интересы" -->
+    <div id="interests" class="tab-content">
+        <div class="profile-tags-container">
+            <h3>Управление избранными тегами</h3>
+            
+            <div class="profile-tags-wrapper">
+                <div class="profile-tags-selection">
+                    <div class="profile-available-tags">
+                        <h4>Доступные теги:</h4>
+                        <div class="profile-tags-grid" id="all-tags">
+                            {% for tag in all_tags %}
+                                <div class="profile-tag-item {% if tag in user.favorite_tags %}profile-selected{% endif %}" 
+                                     data-tag-id="{{ tag.id }}">
+                                    {{ tag.name }}
+                                    <button class="profile-tag-toggle" 
+                                            onclick="toggleFavoriteTag({{ tag.id }})">
+                                        {{ '✓' if tag in user.favorite_tags else '+' }}
+                                    </button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

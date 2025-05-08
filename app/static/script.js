@@ -823,3 +823,23 @@ function switchTab(tabId) {
     document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
     document.getElementById(tabId).classList.add('active');
 }
+
+
+function toggleFavoriteTag(tagId) {
+    const tagItem = document.querySelector(`.profile-tag-item[data-tag-id="${tagId}"]`);
+    
+    fetch('/toggle_tag', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tag_id: tagId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            tagItem.classList.toggle('profile-selected');
+            const button = tagItem.querySelector('.profile-tag-toggle');
+            button.textContent = data.action === 'added' ? '✓' : '+';
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}

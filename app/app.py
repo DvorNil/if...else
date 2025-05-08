@@ -905,7 +905,7 @@ def profile():
         user.role.lower(), 
         user.role.capitalize()  # Для неизвестных ролей
     )
-
+    all_tags = Tag.query.order_by(Tag.name).all()
     return render_template('profile.html',
                          user=user,
                          username=user.username,
@@ -914,7 +914,8 @@ def profile():
                          attended_events=attended_events,
                          planned_events=planned_events,
                          description = user.description,
-                         is_2fa_enabled = user.is_2fa_enabled)
+                         is_2fa_enabled = user.is_2fa_enabled,
+                         all_tags=all_tags)
 
 
 @app.route('/update_description', methods=['POST'])
@@ -1576,6 +1577,36 @@ def verify_2fa_login():
     except Exception as e:
         app.logger.error(f"2FA Error: {str(e)}", exc_info=True)
         return jsonify({"error": "Внутренняя ошибка сервера"}), 500
+
+@app.route('/toggle_tag', methods=['POST'])
+def toggle_tag():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.filter_by(username=session['username']).first()
+    tag_id = request.json.get('tag_id')
+    
+    try:
+        tag = Tag.query.get_or_404(tag_id)
+        
+        # Проверяем текущий статус тега
+        if tag in user.favorite_tags:
+            user.favorite_tags.remove(tag)
+            action = 'removed'
+        else:
+            user.favorite_tags.append(tag)
+            action = 'added'
+        
+        db.session.commit()
+        return jsonify({
+            "success": True,
+            "action": action,
+            "tag_id": tag_id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 

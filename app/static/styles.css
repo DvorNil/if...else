@@ -1129,3 +1129,45 @@ input:checked + .slider:before {
     min-height: 50px;
     margin-bottom: 15px;
 }
+
+.profile-tags-container {
+    background: #333;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.profile-tags-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.profile-tag-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 15px;
+    background: #2a2a2a;
+    border-radius: 20px;
+    transition: all 0.3s;
+}
+
+.profile-tag-item.profile-selected {
+    background: #ff6200;
+    box-shadow: 0 0 8px rgba(255,98,0,0.3);
+}
+
+.profile-tag-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.profile-tag-item:hover {
+    transform: translateY(-2px);
+}
