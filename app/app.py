@@ -156,7 +156,6 @@ class Friendship(db.Model):
     # Связи с пользователями
     sender = db.relationship('User', foreign_keys=[user_id], backref='sent_requests')
     receiver = db.relationship('User', foreign_keys=[friend_id], backref='received_requests')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Модель рекоммендаций событий
 class Recommendation(db.Model):

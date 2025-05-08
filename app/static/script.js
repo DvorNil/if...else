@@ -812,3 +812,14 @@ function disable2FA() {
             .then(() => window.location.reload());
     }
 }
+
+// Переключение вкладок
+function switchTab(tabId) {
+    // Убираем активные классы
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    // Добавляем активные классы выбранной вкладке
+    document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+}
