@@ -1636,24 +1636,20 @@ def toggle_tag():
 
 @app.route('/rate_event', methods=['POST'])
 def rate_event():
-    # Проверка авторизации через сессию Flask
     if 'username' not in session:
         return jsonify({'error': 'Требуется авторизация'}), 401
 
     try:
         data = request.get_json()
-        if not data:
-            return jsonify({'error': 'Нет данных в запросе'}), 400
-
         event_id = data.get('event_id')
         rating = data.get('rating')
 
-        # Валидация данных
-        if not event_id or not rating:
+        # Валидация
+        if not event_id or rating is None:
             return jsonify({'error': 'Не указаны event_id или rating'}), 400
 
         rating = int(rating)
-        if not (1 <= rating <= 5):
+        if rating != 0 and not (1 <= rating <= 5):
             return jsonify({'error': 'Оценка должна быть от 1 до 5'}), 400
 
         user = User.query.filter_by(username=session['username']).first()
@@ -1664,29 +1660,40 @@ def rate_event():
         if not event:
             return jsonify({'error': 'Мероприятие не найдено'}), 404
 
-        # Обновление или создание оценки
+        # Ищем существующую оценку
         existing_rating = Rating.query.filter_by(
-            user_id=user.id, 
+            user_id=user.id,
             event_id=event_id
         ).first()
 
-        if existing_rating:
-            existing_rating.rating = rating
+        new_rating = 0  # Инициализация по умолчанию
+
+        # Логика обновления/удаления
+        if rating == 0:
+            if existing_rating:
+                db.session.delete(existing_rating)
+                db.session.commit()
         else:
-            new_rating = Rating(
-                user_id=user.id,
-                event_id=event_id,
-                rating=rating
-            )
-            db.session.add(new_rating)
+            if existing_rating:
+                existing_rating.rating = rating
+                new_rating = rating
+            else:
+                new_rating = rating
+                new_rating_obj = Rating(
+                    user_id=user.id,
+                    event_id=event_id,
+                    rating=rating
+                )
+                db.session.add(new_rating_obj)
+            db.session.commit()
 
-        db.session.commit()
-
+        # Обновляем данные мероприятия
+        event = Event.query.get(event_id)
         return jsonify({
             'success': True,
             'average': event.average_rating,
             'count': event.ratings_count,
-            'userRating': rating 
+            'userRating': new_rating if rating != 0 else 0
         })
 
     except Exception as e:
@@ -1696,13 +1703,19 @@ def rate_event():
 @app.route('/get_ratings/<int:event_id>')
 def get_ratings(event_id):
     event = Event.query.get_or_404(event_id)
+    user_rating = 0
+    
+    if 'username' in session:
+        user = User.query.filter_by(username=session['username']).first()
+        if user:
+            rating = Rating.query.filter_by(user_id=user.id, event_id=event_id).first()
+            user_rating = rating.rating if rating else 0
+
     return jsonify({
-        'average': event.average_rating,
-        'count': event.ratings_count
+        'average': event.average_rating if event.ratings_count > 0 else 0.0,
+        'count': event.ratings_count,
+        'userRating': user_rating
     })
-
-
-
 
 
 

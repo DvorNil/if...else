@@ -106,6 +106,15 @@ function showModal(eventData) {
             //statusIcon.style.display = 'none';
         });
 
+     // Установить ID мероприятия для рейтинга
+     const stars = document.querySelectorAll('#modal-star-rating span');
+     stars.forEach(star => {
+         star.style.color = '#ddd';
+         star.classList.remove('active');
+     });
+     document.getElementById('modal-star-rating').dataset.eventId = eventData.eventId;
+     updateRatingStars(eventData.eventId);
+
     const statusControls = document.querySelector('.status-controls');
     const newControls = statusControls.cloneNode(true);
     statusControls.parentNode.replaceChild(newControls, statusControls);
@@ -171,10 +180,6 @@ function showModal(eventData) {
     } else {
         showEventContent();
     }
-    
-     // Установить ID мероприятия для рейтинга
-    document.getElementById('modal-star-rating').dataset.eventId = eventData.eventId;
-    document.getElementById('modal-average-rating').textContent = event.average_rating.toFixed(1);
 
     document.getElementById('modal').style.display = 'block';
 }
@@ -851,55 +856,79 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-//  функция для обработки оценки мероприятия
-function handleRatingClick(e) {
-    const authData = document.getElementById('auth-data');
-    const isAuthenticated = authData.dataset.isAuthenticated === 'true';
-    
-    if (!isAuthenticated) {
-        alert('Для оценки требуется авторизация!');
-        return;
-    }
-    
+// Обработчик mouseover
+document.getElementById('modal-star-rating').addEventListener('mouseover', e => {
     const star = e.target.closest('[data-value]');
     if (!star) return;
     
-    const rating = parseInt(star.dataset.value);
-    const eventId = document.getElementById('modal-star-rating').dataset.eventId;
+    const hoverValue = parseInt(star.dataset.value);
+    const stars = document.querySelectorAll('#modal-star-rating span');
     
+    stars.forEach(s => {
+        const value = parseInt(s.dataset.value);
+        s.style.color = value <= hoverValue ? '#ffa500' : '#ddd';
+    });
+});
+
+// Обработчик mouseleave
+document.getElementById('modal-star-rating').addEventListener('mouseleave', () => {
+    updateRatingStars(currentEventData.eventId);
+});
+
+// Функция для оценки
+function handleRatingClick(e) {
+    const star = e.target.closest('[data-value]');
+    if (!star) return;
+
+    const eventId = document.getElementById('modal-star-rating')?.dataset.eventId;
+    const rating = parseInt(star.dataset.value);
+    
+    // Проверка наличия обязательных данных
+    if (!eventId || isNaN(rating)) {
+        alert('Ошибка: некорректные данные мероприятия');
+        return;
+    }
+
+    // Получение текущего рейтинга пользователя
+    const currentRating = parseInt(document.querySelector('#modal-star-rating span.active')?.dataset.value || 0);
+    const newRating = currentRating === rating ? 0 : rating;
+
     fetch('/rate_event', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
             event_id: eventId,
-            rating: rating
+            rating: newRating
         })
     })
     .then(async res => {
-        const data = await res.json();
         if (!res.ok) {
-            throw new Error(data.error || 'Ошибка сервера');
+            const error = await res.json();
+            throw new Error(error.error || 'Ошибка сервера');
         }
-        return data;
+        return res.json();
     })
     .then(data => {
-        // Обновление основной информации
-        document.getElementById('modal-average-rating').textContent = data.average.toFixed(1);
-        document.getElementById('modal-ratings-count').textContent = `(${data.count})`;
-    
-        // Обновление интерактивных звезд
+        // Обновление только существующих элементов
+        const averageEl = document.getElementById('modal-average-rating');
+        const countEl = document.getElementById('modal-ratings-count');
+        
+        if (averageEl) averageEl.textContent = data.average.toFixed(1);
+        if (countEl) countEl.textContent = `(${data.count})`;
+
+        // Обновление звезд
         const stars = document.querySelectorAll('#modal-star-rating span');
-        stars.forEach(star => {
-            const value = parseInt(star.dataset.value);
-            star.classList.toggle('active', value <= data.userRating);
+        stars.forEach(s => {
+            const value = parseInt(s.dataset.value);
+            s.classList.toggle('active', value <= data.userRating && data.userRating > 0);
         });
-    
-        // Обновление постов на странице
-        document.querySelectorAll(`[data-event-id="${eventId}"] .average-rating`).forEach(el => {
-            el.textContent = data.average.toFixed(1);
-        });
-        document.querySelectorAll(`[data-event-id="${eventId}"] .ratings-count`).forEach(el => {
-            el.textContent = `(${data.count})`;
+
+        // Обновление постов
+        document.querySelectorAll(`[data-event-id="${eventId}"]`).forEach(post => {
+            const postAverage = post.querySelector('.average-rating');
+            const postCount = post.querySelector('.ratings-count');
+            if (postAverage) postAverage.textContent = data.average.toFixed(1);
+            if (postCount) postCount.textContent = `(${data.count})`;
         });
     })
     .catch(err => {
@@ -908,15 +937,46 @@ function handleRatingClick(e) {
     });
 }
 
-document.getElementById('modal-star-rating').addEventListener('mouseover', e => {
-    const star = e.target.closest('[data-value]');
-    if (!star) return;
-    
-    const value = parseInt(star.dataset.value);
-    const stars = document.querySelectorAll('#modal-star-rating span');
-    stars.forEach(s => s.classList.toggle('hover', parseInt(s.dataset.value) <= value));
-});
+// Функция обновления звезд
+async function updateRatingStars(eventId) {
+    try {
+        const res = await fetch(`/get_ratings/${eventId}`);
+        const data = await res.json();
+        
+        const stars = document.querySelectorAll('#modal-star-rating span');
+        const average = data.average || 0;
 
-document.getElementById('modal-star-rating').addEventListener('mouseleave', () => {
-    document.querySelectorAll('#modal-star-rating span').forEach(s => s.classList.remove('hover'));
-});
+        // Сброс всех звезд перед обновлением
+        stars.forEach(star => {
+            star.style.color = '#ddd';
+            star.classList.remove('active');
+        });
+
+        // Обновление только если есть оценки
+        if (data.count > 0) {
+            stars.forEach(star => {
+                const value = parseInt(star.dataset.value);
+                star.style.color = value <= average ? '#ffa500' : '#ddd';
+            });
+        }
+
+        // Обновление текста
+        document.getElementById('modal-average-rating').textContent = 
+            data.average > 0 ? data.average.toFixed(1) : 'Нет оценок';
+        document.getElementById('modal-ratings-count').textContent = 
+            data.count > 0 ? `(${data.count})` : '';
+
+        // Обновление пользовательского рейтинга
+        if (data.userRating > 0) {
+            document.querySelectorAll('#modal-star-rating span').forEach(star => {
+                const value = parseInt(star.dataset.value);
+                if (value <= data.userRating) {
+                    star.classList.add('active');
+                }
+            });
+        }
+
+    } catch (err) {
+        console.error('Ошибка обновления:', err);
+    }
+}
