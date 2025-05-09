@@ -893,58 +893,44 @@ function handleRatingClick(e) {
     const eventId = document.getElementById('modal-star-rating')?.dataset.eventId;
     const rating = parseInt(star.dataset.value);
     
-    // Проверка наличия обязательных данных
     if (!eventId || isNaN(rating)) {
-        alert('Ошибка: некорректные данные мероприятия');
+        alert('Ошибка: некорректные данные');
         return;
     }
-
-    // Получение текущего рейтинга пользователя
-    const currentRating = parseInt(document.querySelector('#modal-star-rating span.active')?.dataset.value || 0);
-    const newRating = currentRating === rating ? 0 : rating;
 
     fetch('/rate_event', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            event_id: eventId,
-            rating: newRating
-        })
+        body: JSON.stringify({ event_id: eventId, rating })
     })
     .then(async res => {
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.error || 'Ошибка сервера');
-        }
-        return res.json();
-    })
-    .then(data => {
-        // Обновление только существующих элементов
-        const averageEl = document.getElementById('modal-average-rating');
-        const countEl = document.getElementById('modal-ratings-count');
-        
-        if (averageEl) averageEl.textContent = data.average.toFixed(1);
-        if (countEl) countEl.textContent = `(${data.count})`;
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
 
-        // Обновление звезд
+        // Обновление интерфейса
         const stars = document.querySelectorAll('#modal-star-rating span');
-        stars.forEach(s => {
-            const value = parseInt(s.dataset.value);
-            s.classList.toggle('active', value <= data.userRating && data.userRating > 0);
+        stars.forEach(s => s.classList.remove('active'));
+        
+        if (data.userRating > 0) {
+            stars.forEach(s => {
+                if (parseInt(s.dataset.value) <= data.userRating) {
+                    s.classList.add('active');
+                }
+            });
+        }
+        document.querySelectorAll(`.post[data-event-id="${eventId}"] .average-rating`).forEach(el => {
+            el.textContent = data.average.toFixed(1);
         });
-
-        // Обновление постов
-        document.querySelectorAll(`[data-event-id="${eventId}"]`).forEach(post => {
-            const postAverage = post.querySelector('.average-rating');
-            const postCount = post.querySelector('.ratings-count');
-            if (postAverage) postAverage.textContent = data.average.toFixed(1);
-            if (postCount) postCount.textContent = `(${data.count})`;
+        
+        document.querySelectorAll(`.post[data-event-id="${eventId}"] .ratings-count`).forEach(el => {
+            el.textContent = `(${data.count})`;
         });
+        document.getElementById('modal-average-rating').textContent = 
+            data.average.toFixed(1);
+        document.getElementById('modal-ratings-count').textContent = 
+            `(${data.count})`;
     })
-    .catch(err => {
-        console.error('Ошибка:', err);
-        alert(err.message);
-    });
+    .catch(err => alert(err.message));
 }
 
 // Функция обновления звезд

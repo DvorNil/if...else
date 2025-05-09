@@ -1633,7 +1633,7 @@ def toggle_tag():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
-
+    
 @app.route('/rate_event', methods=['POST'])
 def rate_event():
     if 'username' not in session:
@@ -1660,40 +1660,41 @@ def rate_event():
         if not event:
             return jsonify({'error': 'Мероприятие не найдено'}), 404
 
-        # Ищем существующую оценку
         existing_rating = Rating.query.filter_by(
             user_id=user.id,
             event_id=event_id
         ).first()
 
-        new_rating = 0  # Инициализация по умолчанию
+        new_rating = 0
 
-        # Логика обновления/удаления
-        if rating == 0:
-            if existing_rating:
+        if existing_rating:
+            if existing_rating.rating == rating:
+                # Сброс оценки при повторном нажатии
                 db.session.delete(existing_rating)
-                db.session.commit()
-        else:
-            if existing_rating:
+                new_rating = 0
+            else:
+                # Обновление оценки
                 existing_rating.rating = rating
                 new_rating = rating
-            else:
-                new_rating = rating
+        else:
+            if rating != 0:
+                # Новая оценка
                 new_rating_obj = Rating(
                     user_id=user.id,
                     event_id=event_id,
                     rating=rating
                 )
                 db.session.add(new_rating_obj)
-            db.session.commit()
+                new_rating = rating
 
-        # Обновляем данные мероприятия
-        event = Event.query.get(event_id)
+        db.session.commit()
+        event = Event.query.get(event_id)  # Обновляем данные мероприятия
+
         return jsonify({
             'success': True,
             'average': event.average_rating,
             'count': event.ratings_count,
-            'userRating': new_rating if rating != 0 else 0
+            'userRating': new_rating
         })
 
     except Exception as e:
