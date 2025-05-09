@@ -864,6 +864,7 @@ document.getElementById('modal-star-rating').addEventListener('mouseover', e => 
     const hoverValue = parseInt(star.dataset.value);
     const stars = document.querySelectorAll('#modal-star-rating span');
     
+    
     stars.forEach(s => {
         const value = parseInt(s.dataset.value);
         s.style.color = value <= hoverValue ? '#ffa500' : '#ddd';
@@ -872,7 +873,16 @@ document.getElementById('modal-star-rating').addEventListener('mouseover', e => 
 
 // Обработчик mouseleave
 document.getElementById('modal-star-rating').addEventListener('mouseleave', () => {
-    updateRatingStars(currentEventData.eventId);
+    const stars = document.querySelectorAll('#modal-star-rating span');
+    const userRating = parseInt(
+        document.querySelector('#modal-star-rating span.active')?.dataset.value || 0
+    );
+    
+    stars.forEach(star => {
+        const value = parseInt(star.dataset.value);
+        // Если есть оценка пользователя - подсветить её, иначе все серые
+        star.style.color = value <= userRating ? '#ffa500' : '#ddd';
+    });
 });
 
 // Функция для оценки
@@ -940,43 +950,41 @@ function handleRatingClick(e) {
 // Функция обновления звезд
 async function updateRatingStars(eventId) {
     try {
-        const res = await fetch(`/get_ratings/${eventId}`);
-        const data = await res.json();
+        const response = await fetch(`/get_ratings/${eventId}`);
+        const { average, count, userRating } = await response.json();
         
         const stars = document.querySelectorAll('#modal-star-rating span');
-        const average = data.average || 0;
+        const averageRatingEl = document.getElementById('modal-average-rating');
+        const ratingsCountEl = document.getElementById('modal-ratings-count');
 
-        // Сброс всех звезд перед обновлением
+        averageRatingEl.textContent = average > 0 ? average.toFixed(1) : 'Нет оценок';
+        ratingsCountEl.textContent = count > 0 ? `(${count})` : '';
+
         stars.forEach(star => {
+            star.classList.remove('active', 'rated');
             star.style.color = '#ddd';
-            star.classList.remove('active');
         });
 
-        // Обновление только если есть оценки
-        if (data.count > 0) {
+        if (count > 0) {
             stars.forEach(star => {
                 const value = parseInt(star.dataset.value);
-                star.style.color = value <= average ? '#ffa500' : '#ddd';
+                if (value <= average) {
+                    star.classList.add('rated');
+                }
             });
         }
-
-        // Обновление текста
-        document.getElementById('modal-average-rating').textContent = 
-            data.average > 0 ? data.average.toFixed(1) : 'Нет оценок';
-        document.getElementById('modal-ratings-count').textContent = 
-            data.count > 0 ? `(${data.count})` : '';
-
-        // Обновление пользовательского рейтинга
-        if (data.userRating > 0) {
-            document.querySelectorAll('#modal-star-rating span').forEach(star => {
+        if (userRating > 0) {
+            stars.forEach(star => {
                 const value = parseInt(star.dataset.value);
-                if (value <= data.userRating) {
+                if (value <= userRating) {
                     star.classList.add('active');
                 }
             });
         }
 
-    } catch (err) {
-        console.error('Ошибка обновления:', err);
+    } catch (error) {
+        console.error('Ошибка обновления звезд:', error);
+        document.getElementById('modal-average-rating').textContent = 'Ошибка';
+        ratingsCountEl.textContent = '';
     }
 }

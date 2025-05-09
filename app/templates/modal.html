@@ -1,8 +1,4 @@
 <div id="modal" class="modal">
-    <div id="auth-data" 
-        data-is-authenticated="{{ 'true' if session.username else 'false' }}" 
-        style="display: none;">
-    </div>
     <div class="modal-content">
         <img id="status-icon" class="status-icon" src="" alt="Status Icon">
         
@@ -29,14 +25,12 @@
                     <span id="modal-ratings-count" class="ratings-count"></span>
                     
                     <!-- Интерактивные звезды для оценки -->
-                    <div class="star-rating interactive" 
-                         id="modal-star-rating"
-                         data-event-id="">
-                         <span data-value="1">★</span>
-                         <span data-value="2">★</span>
-                         <span data-value="3">★</span>
-                         <span data-value="4">★</span>
-                         <span data-value="5">★</span>
+                    <div class="star-rating interactive" id="modal-star-rating" data-event-id="">
+                        <span data-value="1">★</span>
+                        <span data-value="2">★</span>
+                        <span data-value="3">★</span>
+                        <span data-value="4">★</span>
+                        <span data-value="5">★</span>
                     </div>
                 </div>
 

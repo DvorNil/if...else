@@ -1189,10 +1189,11 @@ input:checked + .slider:before {
     color: #ddd;
     transition: color 0.2s;
     font-size: 24px;
+    order: 5;
 }
 
 #modal-star-rating span {
-    color: #ddd !important;
+    color: #ddd ;
 }
 
 #modal-star-rating span.active {
@@ -1201,7 +1202,7 @@ input:checked + .slider:before {
 
 #modal-star-rating span:hover,
 #modal-star-rating span:hover ~ span {
-    color: #ffa500 !important;
+    color: #ffa500 ;
 }
 
 
