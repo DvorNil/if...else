@@ -122,6 +122,17 @@ class Event(db.Model):
         backref=db.backref('event', lazy='joined'),
         lazy='dynamic'
     )
+    @property
+    def average_rating(self):
+        avg = db.session.query(func.avg(Rating.rating)).filter(
+            Rating.event_id == self.id
+        ).scalar()
+        return round(avg, 1) if avg else 0.0
+
+    @property
+    def ratings_count(self):
+        return Rating.query.filter_by(event_id=self.id).count()
+
 
 # Связующая таблица для тегов и мероприятий
 class EventTag(db.Model):
@@ -177,6 +188,21 @@ class TwoFAAttempt(db.Model):
     attempts = db.Column(db.Integer, default=0)
     last_attempt = db.Column(db.DateTime)
     blocked_until = db.Column(db.DateTime)
+
+# Модель оценки мероприятия
+class Rating(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='ratings')
+    event = db.relationship('Event', backref='ratings')
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'event_id', name='unique_user_event_rating'),
+    )
 
 # Создание таблиц и добавление начальных данных
 with app.app_context():
@@ -1608,7 +1634,72 @@ def toggle_tag():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
+@app.route('/rate_event', methods=['POST'])
+def rate_event():
+    # Проверка авторизации через сессию Flask
+    if 'username' not in session:
+        return jsonify({'error': 'Требуется авторизация'}), 401
 
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Нет данных в запросе'}), 400
+
+        event_id = data.get('event_id')
+        rating = data.get('rating')
+
+        # Валидация данных
+        if not event_id or not rating:
+            return jsonify({'error': 'Не указаны event_id или rating'}), 400
+
+        rating = int(rating)
+        if not (1 <= rating <= 5):
+            return jsonify({'error': 'Оценка должна быть от 1 до 5'}), 400
+
+        user = User.query.filter_by(username=session['username']).first()
+        if not user:
+            return jsonify({'error': 'Пользователь не найден'}), 404
+
+        event = Event.query.get(event_id)
+        if not event:
+            return jsonify({'error': 'Мероприятие не найдено'}), 404
+
+        # Обновление или создание оценки
+        existing_rating = Rating.query.filter_by(
+            user_id=user.id, 
+            event_id=event_id
+        ).first()
+
+        if existing_rating:
+            existing_rating.rating = rating
+        else:
+            new_rating = Rating(
+                user_id=user.id,
+                event_id=event_id,
+                rating=rating
+            )
+            db.session.add(new_rating)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'average': event.average_rating,
+            'count': event.ratings_count,
+            'userRating': rating 
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Ошибка сервера: {str(e)}'}), 500
+
+@app.route('/get_ratings/<int:event_id>')
+def get_ratings(event_id):
+    event = Event.query.get_or_404(event_id)
+    return jsonify({
+        'average': event.average_rating,
+        'count': event.ratings_count
+    })
 
 
 

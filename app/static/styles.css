@@ -1177,3 +1177,75 @@ input:checked + .slider:before {
 .profile-tag-item:hover {
     transform: translateY(-2px);
 }
+
+/* Звёздный рейтинг */
+/*
+.star-rating {
+    position: relative;
+    display: inline-block;
+    font-size: 24px;
+    color: #ddd;
+    cursor: default;
+}
+
+.star-rating.interactive {
+    cursor: pointer;
+}
+
+.star-rating.interactive span {
+    transition: color 0.2s;
+}
+
+.star-rating.interactive:hover span {
+    color: #ffd700 !important;
+}
+
+.star-rating span[data-value]:hover ~ span {
+    color: #ddd !important;
+}
+
+.star-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: #ffd700;
+    overflow: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.modal-rating {
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+*/
+
+.star {
+    color: #ffa500;
+    font-size: 24px;
+}
+
+.average-rating {
+    font-size: 18px;
+    margin: 0 5px;
+}
+
+.ratings-count {
+    font-size: 14px;
+    color: #666;
+}
+
+/* Стили для интерактивных звезд в модалке */
+#modal-star-rating span {
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+#modal-star-rating span.active,
+#modal-star-rating span:hover,
+#modal-star-rating span:hover ~ span {
+    color: #ffa500 !important;
+}

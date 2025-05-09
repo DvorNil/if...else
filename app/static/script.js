@@ -162,11 +162,9 @@ function showModal(eventData) {
             alert(error.message || 'Ошибка обновления статуса');
         }
     };
+
     // Добавляем обработчик на новый контейнер
     newControls.addEventListener('click', handleStatusClick);
-
-
-
 
     if (eventData.isPrivate && !checkAccess(eventData.eventId)) {
         showPasswordPrompt();
@@ -174,6 +172,10 @@ function showModal(eventData) {
         showEventContent();
     }
     
+     // Установить ID мероприятия для рейтинга
+    document.getElementById('modal-star-rating').dataset.eventId = eventData.eventId;
+    document.getElementById('modal-average-rating').textContent = event.average_rating.toFixed(1);
+
     document.getElementById('modal').style.display = 'block';
 }
 
@@ -843,3 +845,78 @@ function toggleFavoriteTag(tagId) {
     })
     .catch(error => console.error('Error:', error));
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('modal-star-rating').addEventListener('click', handleRatingClick);
+});
+
+
+//  функция для обработки оценки мероприятия
+function handleRatingClick(e) {
+    const authData = document.getElementById('auth-data');
+    const isAuthenticated = authData.dataset.isAuthenticated === 'true';
+    
+    if (!isAuthenticated) {
+        alert('Для оценки требуется авторизация!');
+        return;
+    }
+    
+    const star = e.target.closest('[data-value]');
+    if (!star) return;
+    
+    const rating = parseInt(star.dataset.value);
+    const eventId = document.getElementById('modal-star-rating').dataset.eventId;
+    
+    fetch('/rate_event', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            event_id: eventId,
+            rating: rating
+        })
+    })
+    .then(async res => {
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || 'Ошибка сервера');
+        }
+        return data;
+    })
+    .then(data => {
+        // Обновление основной информации
+        document.getElementById('modal-average-rating').textContent = data.average.toFixed(1);
+        document.getElementById('modal-ratings-count').textContent = `(${data.count})`;
+    
+        // Обновление интерактивных звезд
+        const stars = document.querySelectorAll('#modal-star-rating span');
+        stars.forEach(star => {
+            const value = parseInt(star.dataset.value);
+            star.classList.toggle('active', value <= data.userRating);
+        });
+    
+        // Обновление постов на странице
+        document.querySelectorAll(`[data-event-id="${eventId}"] .average-rating`).forEach(el => {
+            el.textContent = data.average.toFixed(1);
+        });
+        document.querySelectorAll(`[data-event-id="${eventId}"] .ratings-count`).forEach(el => {
+            el.textContent = `(${data.count})`;
+        });
+    })
+    .catch(err => {
+        console.error('Ошибка:', err);
+        alert(err.message);
+    });
+}
+
+document.getElementById('modal-star-rating').addEventListener('mouseover', e => {
+    const star = e.target.closest('[data-value]');
+    if (!star) return;
+    
+    const value = parseInt(star.dataset.value);
+    const stars = document.querySelectorAll('#modal-star-rating span');
+    stars.forEach(s => s.classList.toggle('hover', parseInt(s.dataset.value) <= value));
+});
+
+document.getElementById('modal-star-rating').addEventListener('mouseleave', () => {
+    document.querySelectorAll('#modal-star-rating span').forEach(s => s.classList.remove('hover'));
+});

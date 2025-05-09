@@ -30,6 +30,13 @@
                 <div class="post-content">
                     <h3>{{ post.title }}</h3>
                     <p>{{ post.description|truncate(100) }}</p>
+
+                    <p class="rating">
+                        <span class="star" style="color: #ffa500;">★</span>
+                        <span class="average-rating">{{ "%.1f"|format(post.average_rating) }}</span>
+                        <span class="ratings-count">({{ post.ratings_count }})</span>
+                    </p>
+
                     <p class="tags">Теги: 
                         {% for tag in post.tags %}
                             <span class="tag 
