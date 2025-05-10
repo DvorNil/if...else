@@ -11,6 +11,8 @@ from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from sqlalchemy.ext.hybrid import hybrid_property
+import math
+from sqlalchemy.orm import joinedload
 
 from pyotp import TOTP, random_base32
 import qrcode
@@ -90,6 +92,67 @@ class User(db.Model):
         sent = [f.receiver for f in self.sent_requests if f.status == 'accepted']
         received = [f.sender for f in self.received_requests if f.status == 'accepted']
         return list(set(sent + received))
+    
+    def calculate_recommendation_scores(self):
+        """Рассчитывает баллы для рекомендаций с исправлениями"""
+        events = Event.query.filter_by(is_active=True).options(joinedload(Event.tags)).all()
+        scores = []
+        
+        favorite_tags = {t.id for t in self.favorite_tags}
+        friend_ids = [f.id for f in self.friends]
+        
+        for event in events:
+            score = 0
+
+            # 1. Теги
+            common_tags = len(favorite_tags & {t.id for t in event.tags})
+            score += common_tags * 15
+
+            # 2. Рейтинг
+            score += float(event.average_rating) * 5  # Явное преобразование
+
+            # 3. Свежесть (исправленная формула)
+            now = datetime.utcnow()
+            if event.date_time > now:
+                delta_days = (event.date_time - now).days
+                score += 80  # Базовый балл
+                
+                if delta_days <= 3:
+                    deduction = delta_days * 5
+                elif delta_days <= 7:
+                    deduction = 15 + (delta_days - 3) * 3
+                elif delta_days <= 30:
+                    deduction = 27 + (delta_days - 7) * 1
+                else:
+                    deduction = 50 + (delta_days - 30) * 0.2
+                
+                score -= deduction
+            else:
+                score -= 50  #  штраф за прошедшие
+
+            # 4. Приватность
+            if event.is_private:
+                score -= 100
+
+            # 5. Рекомендации друзей
+            rec_count = Recommendation.query.filter(
+                Recommendation.event_id == event.id,
+                Recommendation.sender_id.in_(friend_ids)
+            ).count()
+            score += 30 * rec_count
+
+            # 6. Популярность (исправление формулы)
+            views = event.views_count or 0
+            if views > 0:
+                if views < 10:
+                    score += views
+                else:
+                    score += 5 + (math.log(views/10, 2) * 5)
+
+            scores.append((event, score))
+        
+        return sorted(scores, key=lambda x: x[1], reverse=True)
+
 
 # Модель тега
 class Tag(db.Model):
@@ -133,10 +196,9 @@ class Event(db.Model):
     def ratings_count(self):
         return Rating.query.filter_by(event_id=self.id).count()
     
-    @property
+    @hybrid_property
     def views_count(self):
         return EventView.query.filter_by(event_id=self.id).count()
-
 
 # Связующая таблица для тегов и мероприятий
 class EventTag(db.Model):
@@ -215,6 +277,7 @@ class EventView(db.Model):
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), primary_key=True)
     last_viewed_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+db.Index('ix_recommendation_receiver', Recommendation.receiver_id)
 
 # Создание таблиц и добавление начальных данных
 with app.app_context():
@@ -346,14 +409,11 @@ def home():
     
     query = Event.query.filter_by(is_active=True)
     
+    # Фильтры поиска и тегов
     if search_query:
-        # Ищем по основным полям ИЛИ по тегам
         query = query.filter(
             (Event.title.ilike(f'%{search_query}%')) | 
             (Event.description.ilike(f'%{search_query}%')) | 
-            (Event.event_type.ilike(f'%{search_query}%')) | 
-            (Event.location_name.ilike(f'%{search_query}%')) |
-            (Event.location_address.ilike(f'%{search_query}%')) |
             (Event.tags.any(Tag.name.ilike(f'%{search_query}%')))
         )
     
@@ -362,26 +422,32 @@ def home():
         if tag:
             query = query.join(Event.tags).filter(Tag.id == tag.id)
     
-    events = query.all()
+    # Логика сортировки
+    if selected_sort == 'recommended' and 'username' in session:
+        user = User.query.filter_by(username=session['username']).first()
+        if user:
+            recommended = user.calculate_recommendation_scores()
+            events = [e for e, _ in recommended]  # Уже отсортировано
+        else:
+            events = []
+    else:
+        # Сортировки, основанные на SQL
+        if selected_sort == 'popular':
+            query = query.outerjoin(EventView).group_by(Event.id).order_by(func.count(EventView.event_id).desc())
+        elif selected_sort == 'rating':
+            query = query.outerjoin(Rating).group_by(Event.id).order_by(func.coalesce(func.avg(Rating.rating), 0).desc())
+        elif selected_sort == 'oldest':
+            query = query.order_by(Event.created_at.asc())
+        else:  # newest
+            query = query.order_by(Event.created_at.desc())
+        
+        events = query.all()
+    
     tags = Tag.query.all()
     
-    if selected_sort == 'popular':
-        query = query.outerjoin(EventView).group_by(Event.id).order_by(func.count(EventView.event_id).desc())
-    elif selected_sort == 'rating':
-        # Используем SQL-расчет рейтинга
-        query = query.outerjoin(Rating).group_by(Event.id).order_by(func.coalesce(func.avg(Rating.rating), 0).desc())
-    elif selected_sort == 'oldest':
-        query = query.order_by(Event.created_at.asc())
-    elif selected_sort == 'recommended':
-        query = query.order_by(Event.created_at.desc())  # Заглушка
-    else:  # newest (default)
-        query = query.order_by(Event.created_at.desc())
-
-    events = query.all()
-
     return render_template('index.html', 
-                         posts=events, 
-                         tags=tags, 
+                         posts=events,
+                         tags=tags,
                          search_query=search_query,
                          selected_tag=selected_tag,
                          selected_sort=selected_sort)
