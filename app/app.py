@@ -1264,8 +1264,36 @@ def all_events():
     if 'username' not in session or session.get('role') not in ['moderator', 'admin']:
         return redirect(url_for('home'))
     
-    events = Event.query.filter_by(is_active=True).all()
-    return render_template('all_events.html', events=events)
+    search_query = request.args.get('search', '').strip()
+    selected_tag = request.args.get('tag', '').strip()
+    
+    query = Event.query.filter_by(is_active=True)
+    
+    # Фильтр по поиску (как в index)
+    if search_query:
+        query = query.filter(
+            (Event.title.ilike(f'%{search_query}%')) | 
+            (Event.description.ilike(f'%{search_query}%')) | 
+            (Event.event_type.ilike(f'%{search_query}%')) | 
+            (Event.location_name.ilike(f'%{search_query}%')) |
+            (Event.location_address.ilike(f'%{search_query}%')) |
+            (Event.tags.any(Tag.name.ilike(f'%{search_query}%')))
+        )
+    
+    # Фильтр по тегу
+    if selected_tag:
+        tag = Tag.query.filter_by(name=selected_tag).first()
+        if tag:
+            query = query.join(Event.tags).filter(Tag.id == tag.id)
+    
+    events = query.all()
+    tags = Tag.query.all()
+    
+    return render_template('all_events.html', 
+                         events=events, 
+                         tags=tags,
+                         search_query=search_query,
+                         selected_tag=selected_tag)
 
 @app.route('/all_organizers')
 def all_organizers():

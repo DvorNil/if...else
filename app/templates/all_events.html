@@ -18,14 +18,6 @@
                 <input type="hidden" name="tag" value="{{ request.args.get('tag', '') }}">
                 <button type="submit" class="menu-btn">Поиск</button>
             </div>
-            <div class="tags-container">
-                {% for tag in tags %}
-                    <span class="tag {% if request.args.get('tag') == tag.name %}active{% endif %}" 
-                          onclick="filterPosts('tag', '{{ tag.name }}')">
-                        {{ tag.name }}
-                    </span>
-                {% endfor %}
-            </div>
         </form>
 
         {% for event in events %}
@@ -38,11 +30,21 @@
                 <h3>{{ event.title }}</h3>
                 <p>Организатор: {{ event.organizer.username }}</p>
                 <p>{{ event.description|truncate(100) }}</p>
-                <p class="tags">Теги: 
-                    {% for tag in event.tags %}
-                        <span class="tag">{{ tag.name }}</span>
-                    {% endfor %}
-                </p>
+                <p class="rating">
+                        <span class="star" style="color: #ffa500;">★</span>
+                        <span class="average-rating" style="margin-right: 12px;">{{ "%.1f"|format(event.average_rating) }}</span>
+                        <span class="ratings-count" style="color: #808080;"> {{ event.ratings_count }} оценок</span>
+                    </p>
+                    <p class="tags">Теги: 
+                        {% for tag in event.tags %}
+                            <span class="tag 
+                                {% if session.username %} 
+                                    {% if tag in current_user.favorite_tags %}favorite-tag{% endif %} 
+                                {% endif %}">
+                                {{ tag.name }}
+                            </span>
+                        {% endfor %}
+                    </p>
                 <p>Тип мероприятия: {{ event.event_type }}</p>
                 <p>Адрес: {{ event.location_address }}</p>
                 <div class="event-actions">

@@ -58,18 +58,27 @@
             <div class="post-content">
                 <h3>{{ event.title }}</h3>
                 <p>{{ event.description|truncate(100) }}</p>
-                <p class="tags">Теги: 
-                    {% for tag in event.tags %}
-                        <span class="tag">{{ tag.name }}</span>
-                    {% endfor %}
-                </p>
+                <p class="rating">
+                        <span class="star" style="color: #ffa500;">★</span>
+                        <span class="average-rating" style="margin-right: 12px;">{{ "%.1f"|format(event.average_rating) }}</span>
+                        <span class="ratings-count" style="color: #808080;"> {{ event.ratings_count }} оценок</span>
+                    </p>
+                    <p class="tags">Теги: 
+                        {% for tag in event.tags %}
+                            <span class="tag 
+                                {% if session.username %} 
+                                    {% if tag in current_user.favorite_tags %}favorite-tag{% endif %} 
+                                {% endif %}">
+                                {{ tag.name }}
+                            </span>
+                        {% endfor %}
+                    </p>
                 <p>Тип мероприятия: {{ event.event_type }}</p>
                 <p>Адрес: {{ event.location_address }}</p>
                 <div class="event-actions">
                     <a href="{{ url_for('edit_event', event_id=event.id) }}" class="menu-btn">Изменить</a>
                     <button onclick="showEventStats(event, {{ event.id }})" class="menu-btn stats-btn">Статистика</button>
                     <button onclick="confirmDelete({{ event.id }})" class="menu-btn delete-btn">Удалить</button>
-                    
                 </div>
             </div>
         </div>
