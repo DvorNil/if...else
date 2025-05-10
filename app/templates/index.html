@@ -56,6 +56,17 @@
             {% endif %}
         </div>
         <div class="menu-buttons">
+            <span style="color: white; margin-right: 10px;">Сортировка:</span>
+            <select class="menu-btn" id="sortSelector" onchange="applySorting(this.value)">
+                {% if session.username %}
+                    <option value="recommended" {% if selected_sort == 'recommended' %}selected{% endif %}>Для вас</option>
+                {% endif %}
+                <option value="popular" {% if selected_sort == 'popular' %}selected{% endif %}>По популярности</option>
+                <option value="rating" {% if selected_sort == 'rating' %}selected{% endif %}>По рейтингу</option>
+                <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Время: сначала новое</option>
+                <option value="oldest" {% if selected_sort == 'oldest' %}selected{% endif %}>Время: сначала старое</option>
+            </select>
+
             <a href="{{ url_for('show_map') }}" class="menu-btn">Карта</a>
             <div class="search-container">
                 <form method="GET" action="/">

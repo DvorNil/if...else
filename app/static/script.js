@@ -1115,3 +1115,9 @@ function filterPosts(type, value) {
     
     form.submit();
 }
+
+function applySorting(value) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('sort', value);
+    window.location.search = params.toString();
+}

@@ -1269,3 +1269,22 @@ input:checked + .slider:before {
 .stats-btn:hover {
     background: #ff6200 !important;
 }
+
+#sortSelector {
+    margin-right: 10px;
+    background: #333;
+    color: white;
+    border: 1px solid #ff6200;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+#sortSelector option {
+    background: #1a1a1a;
+    color: #fff;
+}
+
+.menu-buttons {
+    display: flex;
+    align-items: center;
+}

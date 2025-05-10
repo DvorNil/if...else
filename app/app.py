@@ -10,6 +10,7 @@ from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import func
 from datetime import datetime, timedelta
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from pyotp import TOTP, random_base32
 import qrcode
@@ -122,16 +123,19 @@ class Event(db.Model):
         backref=db.backref('event', lazy='joined'),
         lazy='dynamic'
     )
-    @property
+    @hybrid_property
     def average_rating(self):
-        avg = db.session.query(func.avg(Rating.rating)).filter(
+        return db.session.query(func.avg(Rating.rating)).filter(
             Rating.event_id == self.id
-        ).scalar()
-        return round(avg, 1) if avg else 0.0
+        ).scalar() or 0.0
 
     @property
     def ratings_count(self):
         return Rating.query.filter_by(event_id=self.id).count()
+    
+    @property
+    def views_count(self):
+        return EventView.query.filter_by(event_id=self.id).count()
 
 
 # Связующая таблица для тегов и мероприятий
@@ -338,6 +342,7 @@ def inject_user():
 def home():
     search_query = request.args.get('search', '').strip()
     selected_tag = request.args.get('tag', '').strip()
+    selected_sort = request.args.get('sort', 'newest').strip()
     
     query = Event.query.filter_by(is_active=True)
     
@@ -360,11 +365,26 @@ def home():
     events = query.all()
     tags = Tag.query.all()
     
+    if selected_sort == 'popular':
+        query = query.outerjoin(EventView).group_by(Event.id).order_by(func.count(EventView.event_id).desc())
+    elif selected_sort == 'rating':
+        # Используем SQL-расчет рейтинга
+        query = query.outerjoin(Rating).group_by(Event.id).order_by(func.coalesce(func.avg(Rating.rating), 0).desc())
+    elif selected_sort == 'oldest':
+        query = query.order_by(Event.created_at.asc())
+    elif selected_sort == 'recommended':
+        query = query.order_by(Event.created_at.desc())  # Заглушка
+    else:  # newest (default)
+        query = query.order_by(Event.created_at.desc())
+
+    events = query.all()
+
     return render_template('index.html', 
                          posts=events, 
                          tags=tags, 
                          search_query=search_query,
-                         selected_tag=selected_tag)
+                         selected_tag=selected_tag,
+                         selected_sort=selected_sort)
 
 # Страница входа
 @app.route('/login', methods=['GET', 'POST'])
