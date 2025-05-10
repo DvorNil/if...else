@@ -59,7 +59,10 @@
             <span style="color: white; margin-right: 10px;">Сортировка:</span>
             <select class="menu-btn" id="sortSelector" onchange="applySorting(this.value)">
                 {% if session.username %}
-                    <option value="recommended" {% if selected_sort == 'recommended' %}selected{% endif %}>Для вас</option>
+                    <option value="recommended" 
+                        {% if selected_sort == 'recommended' %}selected{% endif %}>
+                        Для вас
+                    </option>
                 {% endif %}
                 <option value="popular" {% if selected_sort == 'popular' %}selected{% endif %}>По популярности</option>
                 <option value="rating" {% if selected_sort == 'rating' %}selected{% endif %}>По рейтингу</option>

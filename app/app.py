@@ -405,7 +405,7 @@ def inject_user():
 def home():
     search_query = request.args.get('search', '').strip()
     selected_tag = request.args.get('tag', '').strip()
-    selected_sort = request.args.get('sort', 'newest').strip()
+    selected_sort = request.args.get('sort', 'recommended' if 'username' in session else 'newest').strip()
     
     query = Event.query.filter_by(is_active=True)
     
@@ -427,10 +427,13 @@ def home():
         user = User.query.filter_by(username=session['username']).first()
         if user:
             recommended = user.calculate_recommendation_scores()
-            events = [e for e, _ in recommended]  # Уже отсортировано
+            events = [e for e, _ in recommended]
         else:
-            events = []
+            events = query.order_by(Event.created_at.desc()).all()
     else:
+        # Если выбрано "Для вас" без авторизации - сбросить на дефолт
+        if selected_sort == 'recommended':
+            selected_sort = 'newest'
         # Сортировки, основанные на SQL
         if selected_sort == 'popular':
             query = query.outerjoin(EventView).group_by(Event.id).order_by(func.count(EventView.event_id).desc())
