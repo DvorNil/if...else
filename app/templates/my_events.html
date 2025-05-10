@@ -67,8 +67,9 @@
                 <p>Адрес: {{ event.location_address }}</p>
                 <div class="event-actions">
                     <a href="{{ url_for('edit_event', event_id=event.id) }}" class="menu-btn">Изменить</a>
-                    <button onclick="confirmDelete({{ event.id }})" class="menu-btn delete-btn">Удалить</button>
                     <button onclick="showEventStats(event, {{ event.id }})" class="menu-btn stats-btn">Статистика</button>
+                    <button onclick="confirmDelete({{ event.id }})" class="menu-btn delete-btn">Удалить</button>
+                    
                 </div>
             </div>
         </div>
