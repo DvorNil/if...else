@@ -1206,4 +1206,66 @@ input:checked + .slider:before {
     color: #ffa500 ;
 }
 
+/* Стили для плашки статистики */
+.stats-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #2a2a2a;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    z-index: 1000;
+    width: 90%;
+    max-width: 600px;
+}
 
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.stat-item {
+    background: #1a1a1a;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-icon {
+    font-size: 24px;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 20px;
+    color: #ff6200;
+    display: block;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #888;
+}
+
+.close-stats {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #ff6200;
+}
+
+.stats-btn {
+    background: rgba(100, 100, 100, 0.5) !important;
+}
+
+.stats-btn:hover {
+    background: #666 !important;
+}

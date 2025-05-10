@@ -4,6 +4,7 @@ const userMenu = document.getElementById('userMenu');
 
 // Глобальная переменная для хранения данных о текущем мероприятии
 let currentEventData = null;
+let currentStatsEventId = null;
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -43,6 +44,7 @@ function handlePostClick(element) {
         console.error('Модальное окно не инициализировано');
         return;
     }
+    if (event.target.closest('.stats-btn')) return;
     const eventData = {
         eventId: element.dataset.eventId,
         title: element.dataset.title,
@@ -1007,4 +1009,109 @@ async function updateRatingStars(eventId) {
         document.getElementById('modal-average-rating').textContent = 'Ошибка';
         ratingsCountEl.textContent = '';
     }
+}
+
+//Статистика мероприятия
+function showEventStats(event, eventId) {
+    event.stopPropagation(); // Блокируем всплытие события
+    event.preventDefault(); // Отменяем стандартное поведение
+    // Закрыть плашку при повторном клике
+    if (currentStatsEventId === eventId) {
+        hideStats();
+        return;
+    }
+    
+    fetch(`/get_event_stats/${eventId}`)
+    .then(response => {
+        if (response.status === 401) {
+            alert('Требуется авторизация!');
+            window.location.href = '/login';
+            return;
+        }
+        if (response.status === 403) {
+            throw new Error('Это не ваше мероприятие');
+        }
+        if (response.status === 404) {
+            throw new Error('Мероприятие удалено');
+        }
+        if (!response.ok) {
+            throw new Error(`Ошибка ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(stats => {
+        // Проверка на наличие данных
+        if (!stats || typeof stats !== 'object') {
+            throw new Error('Некорректные данные');
+        }
+
+        // Форматирование данных
+        const formattedStats = {
+            average_rating: stats.average_rating || 0,
+            views: stats.views ?? 'Нет данных',
+            planned: stats.planned ?? 0,
+            attended: stats.attended ?? 0,
+            recommendations: stats.recommendations ?? 0
+        };
+
+        // Обновление UI
+        document.getElementById('stat-rating').textContent = 
+            formattedStats.average_rating.toFixed(1);
+        document.getElementById('stat-views').textContent = 
+            formattedStats.views;
+        document.getElementById('stat-planned').textContent = 
+            formattedStats.planned;
+        document.getElementById('stat-attended').textContent = 
+            formattedStats.attended;
+        document.getElementById('stat-recommend').textContent = 
+            formattedStats.recommendations;
+
+        // Показ плашки
+        document.getElementById('stats-popup').style.display = 'block';
+        currentStatsEventId = eventId;
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+        alert(`Ошибка загрузки: ${error.message}`);
+        hideStats();
+    });
+}
+
+function hideStats() {
+    document.getElementById('stats-popup').style.display = 'none';
+    currentStatsEventId = null;
+}
+
+// Закрытие при клике вне плашки
+document.addEventListener('click', (e) => {
+    const statsPopup = document.getElementById('stats-popup');
+    if (statsPopup && !statsPopup.contains(e.target)) {
+        hideStats();
+    }
+});
+
+function confirmDelete(eventId) {
+            if (confirm('Вы уверены, что хотите удалить это мероприятие?')) {
+                fetch(`/delete_event/${eventId}`, {
+                    method: 'DELETE',
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Ошибка при удалении мероприятия');
+                    }
+                });
+            }
+        }
+
+function filterPosts(type, value) {
+    const searchInput = document.querySelector('input[name="search"]');
+    const form = document.querySelector('form');
+    
+    if (type === 'tag') {
+        const hiddenInput = document.querySelector('input[name="tag"]');
+        hiddenInput.value = value;
+    }
+    
+    form.submit();
 }

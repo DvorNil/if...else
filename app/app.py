@@ -1769,7 +1769,34 @@ def track_view():
         app.logger.error(f"Track view error: {str(e)}")
         return jsonify({'success': False, 'error': 'Внутренняя ошибка сервера'}), 500
 
-
+@app.route('/get_event_stats/<int:event_id>')
+def get_event_stats(event_id):
+    try:
+        # Проверка авторизации
+        if 'username' not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+            
+        event = Event.query.get_or_404(event_id)
+        user = User.query.filter_by(username=session['username']).first()
+        
+        # Проверка прав доступа
+        if event.organizer_id != user.id:
+            return jsonify({"error": "Forbidden"}), 403
+        
+        stats = {
+            'views': EventView.query.filter_by(event_id=event_id).count(),
+            'planned': UserEventStatus.query.filter_by(event_id=event_id, status='planned').count(),
+            'attended': UserEventStatus.query.filter_by(event_id=event_id, status='attended').count(),
+            'recommendations': Recommendation.query.filter_by(event_id=event_id).count(),
+            'average_rating': event.average_rating,
+            'ratings_count': event.ratings_count
+        }
+        
+        return jsonify(stats)
+    
+    except Exception as e:
+        app.logger.error(f"Stats error: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
 
 
 
