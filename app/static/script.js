@@ -106,6 +106,13 @@ function showModal(eventData) {
             //statusIcon.style.display = 'none';
         });
 
+    //История просмотров
+    try {
+        trackEventView(eventData.eventId); // Добавляем вызов трекера
+    } catch (e) {
+        console.error('Ошибка инициализации трекера:', e);
+    }
+
      // Установить ID мероприятия для рейтинга
      const stars = document.querySelectorAll('#modal-star-rating span');
      stars.forEach(star => {
@@ -182,6 +189,33 @@ function showModal(eventData) {
     }
 
     document.getElementById('modal').style.display = 'block';
+}
+
+function trackEventView(eventId) {
+    fetch('/track_view', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ event_id: eventId })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { 
+                throw new Error(err.error || 'Ошибка сети') 
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (!data.success) {
+            console.warn('Не удалось сохранить просмотр:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка:', error.message);
+    });
 }
 
 function showPasswordPrompt() {
@@ -301,7 +335,7 @@ function showEventContent() {
     document.getElementById('event-content').style.display = 'block';
 }
 
-function loadEventStatus(eventId) { //функция вообще не применяется
+function loadEventStatus(eventId) {
     fetch(`/get_event_status?event_id=${eventId}`)
         .then(response => response.json())
         .then(data => {

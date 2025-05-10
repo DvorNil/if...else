@@ -8,7 +8,6 @@
             <input type="password" id="event-password" class="search-input">
             <button onclick="checkEventPassword()" class="menu-btn">Продолжить</button>
         </div>
-        
         <!-- Основное содержимое -->
         <div id="event-content">
             <span class="close-btn" onclick="hideModal()">×</span>
@@ -16,7 +15,7 @@
             
             <div class="modal-details">
                 <h2 id="modal-title"></h2>
-                <p id="modal-description"></p>
+                
 
                 <div class="modal-rating">
                     <strong>Рейтинг:</strong>
@@ -33,7 +32,7 @@
                         <span data-value="5">★</span>
                     </div>
                 </div>
-
+                <p id="modal-description"></p>
                 <!-- Для офлайн мероприятий -->
                 <div id="location-info">
                     <p><strong>Место проведения:</strong> <span id="modal-location-name"></span></p>

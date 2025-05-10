@@ -204,6 +204,14 @@ class Rating(db.Model):
         db.UniqueConstraint('user_id', 'event_id', name='unique_user_event_rating'),
     )
 
+# Модель для отслеживания просмотров мероприятий
+class EventView(db.Model):
+    __tablename__ = 'event_view'
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), primary_key=True)
+    last_viewed_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # Создание таблиц и добавление начальных данных
 with app.app_context():
     db.create_all()
@@ -1718,6 +1726,48 @@ def get_ratings(event_id):
         'userRating': user_rating
     })
 
+@app.route('/track_view', methods=['POST'])
+def track_view():
+    try:
+        if 'username' not in session:
+            return jsonify({'success': True, 'message': 'Просмотр не записан (гость)'})
+
+        data = request.get_json()
+        event_id = data.get('event_id')
+        
+        if not event_id:
+            return jsonify({'success': False, 'error': 'Не указан event_id'}), 400
+
+        user = User.query.filter_by(username=session['username']).first()
+        if not user:
+            return jsonify({'success': False, 'error': 'Пользователь не найден'}), 404
+
+        event = Event.query.get(event_id)
+        if not event:
+            return jsonify({'success': False, 'error': 'Мероприятие не найдено'}), 404
+
+        # Проверка временного интервала
+        view = EventView.query.filter_by(
+            user_id=user.id, 
+            event_id=event_id
+        ).first()
+
+        if view:
+            if (datetime.utcnow() - view.last_viewed_at).total_seconds() < 300:
+                return jsonify({'success': True, 'message': 'Просмотр не обновлен'})
+            
+            view.last_viewed_at = datetime.utcnow()
+        else:
+            view = EventView(user_id=user.id, event_id=event_id)
+            db.session.add(view)
+
+        db.session.commit()
+        return jsonify({'success': True})
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Track view error: {str(e)}")
+        return jsonify({'success': False, 'error': 'Внутренняя ошибка сервера'}), 500
 
 
 
