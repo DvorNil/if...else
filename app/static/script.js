@@ -307,6 +307,7 @@ function showEventContent() {
     if (e.format === 'online') {
         document.getElementById('location-info').style.display = 'none';
         document.getElementById('online-info').style.display = 'block';
+        document.getElementById('modal-online-info').textContent = e.onlineInfo || "Информация не указана";
         document.getElementById('modal-map').style.display = 'none'; // Скрываем карту
         document.getElementById('modal-map').innerHTML = ''; // Очищаем контейнер
     } else {

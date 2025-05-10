@@ -44,7 +44,6 @@
             const now = new Date();
             const maxDate = new Date(now.getFullYear() + 5, now.getMonth(), now.getDate());
             
-            dateTimeField.min = now.toISOString().slice(0, 16);
             dateTimeField.max = maxDate.toISOString().slice(0, 16);
             
             // Переключение между онлайн/оффлайн
