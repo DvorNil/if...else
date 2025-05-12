@@ -1546,6 +1546,13 @@ def inject_friend_requests_count():
             return {'pending_friend_requests': pending_requests}
     return {}
 
+@app.context_processor
+def inject_user():
+    if 'username' in session:
+        user = User.query.filter_by(username=session['username']).first()
+        return {'current_user': user}
+    return {}
+
 # Сброс пароля
 @app.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():

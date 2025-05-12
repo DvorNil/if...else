@@ -1122,3 +1122,24 @@ function applySorting(value) {
     params.set('sort', value);
     window.location.search = params.toString();
 }
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebarMenu');
+    const overlay = document.getElementById('sidebarOverlay');
+    const menuIcon = document.querySelector('.menu-icon');
+    
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
+    menuIcon.classList.toggle('active');
+    
+    // Блокировка скролла при открытом меню
+    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+}
+
+// Закрытие меню при клике на оверлей
+document.getElementById('sidebarOverlay').addEventListener('click', toggleSidebar);
+
+// Закрытие меню при клике на пункт меню (если нужно)
+document.querySelectorAll('.sidebar-item').forEach(item => {
+    item.addEventListener('click', toggleSidebar);
+});
