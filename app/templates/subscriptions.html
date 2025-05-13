@@ -17,6 +17,15 @@
         .unsubscribe-btn:hover {
             background: rgba(255, 0, 0, 0.8) !important;
         }
+        
+        .subscribe-btn.subscribed {
+            background: #4CAF50 !important;
+            cursor: default;
+        }
+        
+        .friend-item {
+            transition: opacity 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -36,7 +45,7 @@
             <h3>Подписки</h3>
             <div class="friends-container" id="subscriptions-list">
                 {% for organizer in user.favorite_organizers %}
-                    <div class="friend-item">
+                    <div class="friend-item" data-organizer-id="{{ organizer.id }}">
                         <img src="{{ url_for('static', filename=organizer.avatar_url) if organizer.avatar_url else url_for('static', filename='images/default-avatar.png') }}" 
                              class="user-avatar"
                              alt="{{ organizer.username }}">
@@ -60,7 +69,20 @@
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
+        // Храним состояние подписок для предотвращения дублирования
+        const subscriptionState = {
+            processing: new Set(),
+            subscribed: new Set()
+        };
+
+        // Инициализируем состояние подписок при загрузке
         document.addEventListener('DOMContentLoaded', function() {
+            const subscriptions = document.querySelectorAll('.friend-item[data-organizer-id]');
+            subscriptions.forEach(item => {
+                const organizerId = item.dataset.organizerId;
+                subscriptionState.subscribed.add(organizerId);
+            });
+
             const searchInput = document.getElementById('organizer-search');
             const searchResults = document.getElementById('search-results');
 
@@ -75,27 +97,42 @@
                 fetch(`/search_organizers?q=${encodeURIComponent(query)}`)
                     .then(response => response.json())
                     .then(organizers => {
-                        searchResults.innerHTML = organizers.map(org => `
-                            <div class="user-result" data-user-id="${org.id}">
-                                <img src="${org.avatar_url 
-                                    ? '/static/' + org.avatar_url 
-                                    : '/static/images/default-avatar.png'}" 
-                                     class="user-avatar"
-                                     alt="${org.username}">
-                                <span>${org.username}</span>
-                                <button class="menu-btn subscribe-btn" 
-                                        onclick="toggleSubscription(${org.id}, this)">
-                                    Подписаться
-                                </button>
-                            </div>
-                        `).join('');
+                        searchResults.innerHTML = organizers.map(org => {
+                            const isSubscribed = subscriptionState.subscribed.has(org.id.toString());
+                            
+                            return `
+                                <div class="user-result" data-user-id="${org.id}">
+                                    <img src="${org.avatar_url 
+                                        ? '/static/' + org.avatar_url 
+                                        : '/static/images/default-avatar.png'}" 
+                                         class="user-avatar"
+                                         alt="${org.username}">
+                                    <span>${org.username}</span>
+                                    <button class="menu-btn subscribe-btn ${isSubscribed ? 'subscribed' : ''}" 
+                                            onclick="toggleSubscription(${org.id}, this, ${isSubscribed})"
+                                            ${isSubscribed ? 'disabled' : ''}>
+                                        ${isSubscribed ? '✓ Подписано' : 'Подписаться'}
+                                    </button>
+                                </div>
+                            `;
+                        }).join('');
                         searchResults.style.display = 'block';
                     });
             });
         });
 
         function toggleSubscription(organizerId, btn, isUnsubscribe = false) {
+            const organizerIdStr = organizerId.toString();
+            
+            // Проверяем, не выполняется ли уже запрос для этого организатора
+            if (subscriptionState.processing.has(organizerIdStr)) {
+                return;
+            }
+            
+            // Блокируем повторные нажатия
+            subscriptionState.processing.add(organizerIdStr);
             btn.disabled = true;
+            const originalText = btn.textContent;
             btn.textContent = isUnsubscribe ? 'Отписываюсь...' : 'Подписываюсь...';
             
             fetch('/toggle_subscription', {
@@ -107,8 +144,23 @@
             .then(data => {
                 if (data.success) {
                     if (isUnsubscribe) {
+                        // Удаляем из состояния подписок
+                        subscriptionState.subscribed.delete(organizerIdStr);
+                        
                         // Удаляем элемент из списка
-                        btn.closest('.friend-item').remove();
+                        const item = document.querySelector(`.friend-item[data-organizer-id="${organizerId}"]`);
+                        if (item) {
+                            item.style.opacity = '0';
+                            setTimeout(() => item.remove(), 300);
+                        }
+                        
+                        // Обновляем кнопку в результатах поиска
+                        const searchBtn = document.querySelector(`.search-results .user-result[data-user-id="${organizerId}"] .subscribe-btn`);
+                        if (searchBtn) {
+                            searchBtn.textContent = 'Подписаться';
+                            searchBtn.classList.remove('subscribed');
+                            searchBtn.disabled = false;
+                        }
                         
                         // Если список пуст, показываем сообщение
                         if (document.querySelectorAll('#subscriptions-list .friend-item').length === 0) {
@@ -116,23 +168,72 @@
                                 '<p class="empty-message">Вы не подписаны ни на одного организатора</p>';
                         }
                     } else {
+                        // Добавляем в состояние подписок
+                        subscriptionState.subscribed.add(organizerIdStr);
+                        
                         // Обновляем кнопку в результатах поиска
                         btn.textContent = '✓ Подписано';
-                        btn.style.background = '#4CAF50';
+                        btn.classList.add('subscribed');
                         btn.disabled = true;
                         
-                        // Можно добавить организатора в список подписок без перезагрузки
-                        // location.reload(); // Или просто перезагрузить страницу
+                        // Добавляем организатора в список подписок, если его еще нет
+                        if (!document.querySelector(`.friend-item[data-organizer-id="${organizerId}"]`)) {
+                            addOrganizerToList(organizerId, data.followers_count);
+                        }
                     }
                 } else {
-                    btn.textContent = isUnsubscribe ? 'Ошибка отписки' : 'Ошибка подписки';
+                    btn.textContent = originalText;
+                    alert(data.error || 'Произошла ошибка');
                 }
-                btn.disabled = false;
+                
+                subscriptionState.processing.delete(organizerIdStr);
+                btn.disabled = isUnsubscribe ? false : true;
             })
             .catch(() => {
-                btn.textContent = 'Ошибка';
+                btn.textContent = originalText;
+                subscriptionState.processing.delete(organizerIdStr);
                 btn.disabled = false;
+                alert('Ошибка соединения');
             });
+        }
+        
+        function addOrganizerToList(organizerId, followersCount) {
+            // Получаем данные организатора из результатов поиска
+            const searchResult = document.querySelector(`.search-results .user-result[data-user-id="${organizerId}"]`);
+            if (!searchResult) return;
+            
+            const avatar = searchResult.querySelector('.user-avatar').src;
+            const username = searchResult.querySelector('span').textContent;
+            
+            // Создаем новый элемент в списке подписок
+            const subscriptionsList = document.getElementById('subscriptions-list');
+            
+            // Удаляем сообщение "нет подписок", если оно есть
+            const emptyMessage = subscriptionsList.querySelector('.empty-message');
+            if (emptyMessage) {
+                emptyMessage.remove();
+            }
+            
+            const newItem = document.createElement('div');
+            newItem.className = 'friend-item';
+            newItem.dataset.organizerId = organizerId;
+            newItem.innerHTML = `
+                <img src="${avatar}" 
+                     class="user-avatar"
+                     alt="${username}">
+                <a href="/profile/${username}" style="color: white; text-decoration: none;">
+                    ${username}
+                </a>
+                <div class="subscription-actions">
+                    <span style="color: #ffa31a; margin-right: 10px;">Подписчиков: ${followersCount}</span>
+                    <button class="menu-btn unsubscribe-btn" 
+                            onclick="toggleSubscription(${organizerId}, this, true)">
+                        Отписаться
+                    </button>
+                </div>
+            `;
+            
+            subscriptionsList.prepend(newItem);
         }
     </script>
 </body>
