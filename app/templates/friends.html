@@ -124,18 +124,20 @@
             </div>
             <div class="friends-container" id="friends-list">
                 {% for friend in user.friends %}
-                    <a href="{{ url_for('user_profile', username=friend.username) }}" 
-                       class="friend-item searchable" data-search="{{ friend.username }} {{ friend.description or '' }}">
-                       <img src="{% if friend.avatar_url %}/static/{{ friend.avatar_url }}{% else %}{{ url_for('static', filename='images/default-avatar.png') }}{% endif %}"
-                            class="user-avatar"
-                            alt="{{ friend.username }}">
-                        <div>
-                            <span>{{ friend.username }}</span>
-                            {% if friend.description %}
-                                <p class="friend-description">{{ friend.description|truncate(50) }}</p>
-                            {% endif %}
-                        </div>
-                    </a>
+                    <div class="friend-item searchable" data-search="{{ friend.username }} {{ friend.description or '' }}">
+                        <a href="{{ url_for('user_profile', username=friend.username) }}" class="friend-link">
+                            <img src="{% if friend.avatar_url %}/static/{{ friend.avatar_url }}{% else %}{{ url_for('static', filename='images/default-avatar.png') }}{% endif %}"
+                                class="user-avatar"
+                                alt="{{ friend.username }}">
+                            <div>
+                                <span>{{ friend.username }}</span>
+                                {% if friend.description %}
+                                    <p class="friend-description">{{ friend.description|truncate(50) }}</p>
+                                {% endif %}
+                            </div>
+                        </a>
+                        <button class="menu-btn delete-friend-btn" onclick="removeFriend({{ friend.id }}, this)">Удалить</button>
+                    </div>
                 {% else %}
                     <p class="empty-message">У вас пока нет друзей</p>
                 {% endfor %}

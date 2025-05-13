@@ -1992,5 +1992,29 @@ def search_organizers():
         'avatar_url': org.avatar_url 
     } for org in organizers])
 
+@app.route('/remove_friend', methods=['POST'])
+def remove_friend():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    friend_id = data.get('friend_id')
+    
+    user = User.query.filter_by(username=session['username']).first()
+    
+    try:
+        # Удаляем дружбу в обоих направлениях
+        Friendship.query.filter(
+            ((Friendship.user_id == user.id) & (Friendship.friend_id == friend_id)) |
+            ((Friendship.user_id == friend_id) & (Friendship.friend_id == user.id))
+        ).delete()
+        
+        db.session.commit()
+        return jsonify({"success": True})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)

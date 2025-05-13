@@ -1192,3 +1192,42 @@ function toggleSubscription(organizerId, btn, isUnsubscribe = false) {
         alert('Ошибка соединения');
     });
 }
+
+function removeFriend(friendId, btn) {
+    if (!confirm('Вы уверены, что хотите удалить этого пользователя из друзей?')) {
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Удаление...';
+
+    fetch('/remove_friend', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({friend_id: friendId})
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Ошибка сервера');
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Анимация удаления
+            const friendItem = btn.closest('.friend-item');
+            friendItem.style.opacity = '0';
+            setTimeout(() => friendItem.remove(), 300);
+            
+            // Если список пуст, показываем сообщение
+            if (!document.querySelector('#friends-list .friend-item')) {
+                document.getElementById('friends-list').innerHTML = 
+                    '<p class="empty-message">У вас пока нет друзей</p>';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        btn.disabled = false;
+        btn.textContent = 'Удалить';
+        alert('Ошибка при удалении: ' + error.message);
+    });
+}

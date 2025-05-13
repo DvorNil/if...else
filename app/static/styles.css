@@ -1459,3 +1459,21 @@ input:checked + .slider:before {
     color: #ffa31a;
     font-size: 0.9em;
 }
+
+.delete-friend-btn {
+    background: rgba(255, 0, 0, 0.5) !important;
+    margin-left: auto;
+    transition: all 0.3s;
+}
+
+.delete-friend-btn:hover {
+    background: rgba(255, 0, 0, 0.8) !important;
+}
+
+.friend-link {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    text-decoration: none;
+    color: inherit;
+}
