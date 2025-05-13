@@ -1426,3 +1426,36 @@ input:checked + .slider:before {
 .menu-icon.active span:nth-child(3) {
     transform: translateY(-7px) rotate(-45deg);
 }
+
+.subscription-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #292929;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.subscription-info {
+    flex-grow: 1;
+    margin-left: 15px;
+}
+
+.subscription-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.unsubscribe-btn {
+    background: rgba(255, 0, 0, 0.5) !important;
+    color: white !important;
+}
+
+.unsubscribe-btn:hover {
+    background: rgba(255, 0, 0, 0.8) !important;
+}
+
+.followers-count {
+    color: #ffa31a;
+    font-size: 0.9em;
+}

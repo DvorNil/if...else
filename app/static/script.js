@@ -1144,8 +1144,10 @@ document.querySelectorAll('.sidebar-item').forEach(item => {
     item.addEventListener('click', toggleSidebar);
 });
 
-function toggleSubscription(organizerId, btn) {
+function toggleSubscription(organizerId, btn, isUnsubscribe = false) {
     btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = isUnsubscribe ? 'Отписываюсь...' : 'Подписываюсь...';
     
     fetch('/toggle_subscription', {
         method: 'POST',
@@ -1155,17 +1157,38 @@ function toggleSubscription(organizerId, btn) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            if (data.action === 'subscribed') {
-                btn.textContent = '✓ Подписан';
-                btn.style.background = '#4CAF50';
+            if (isUnsubscribe) {
+                // Удаляем элемент из списка
+                const item = btn.closest('.friend-item');
+                item.style.opacity = '0';
+                setTimeout(() => item.remove(), 300);
+                
+                // Проверяем, остались ли подписки
+                if (!document.querySelector('#subscriptions-list .friend-item')) {
+                    document.getElementById('subscriptions-list').innerHTML = 
+                        '<p class="empty-message">Вы не подписаны ни на одного организатора</p>';
+                }
             } else {
-                btn.textContent = '+ Подписаться';
-                btn.style.background = '';
+                // Обновляем UI для кнопки подписки
+                btn.textContent = '✓ Подписано';
+                btn.style.background = '#4CAF50';
+                btn.onclick = null;
+                
+                // Можно добавить анимацию или обновить список
+                if (window.location.pathname === '/subscriptions') {
+                    window.location.reload(); // Проще перезагрузить страницу
+                }
             }
+        } else {
+            btn.textContent = originalText;
+            alert(data.error || 'Произошла ошибка');
         }
         btn.disabled = false;
     })
-    .catch(() => {
+    .catch(error => {
+        console.error('Error:', error);
+        btn.textContent = originalText;
         btn.disabled = false;
+        alert('Ошибка соединения');
     });
 }

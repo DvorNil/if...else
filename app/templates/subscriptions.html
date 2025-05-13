@@ -3,6 +3,21 @@
 <head>
     <title>Мои подписки</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .subscription-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .unsubscribe-btn {
+            background: rgba(255, 0, 0, 0.5) !important;
+        }
+        
+        .unsubscribe-btn:hover {
+            background: rgba(255, 0, 0, 0.8) !important;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -21,12 +36,21 @@
             <h3>Подписки</h3>
             <div class="friends-container" id="subscriptions-list">
                 {% for organizer in user.favorite_organizers %}
-                    <a href="{{ url_for('user_profile', username=organizer.username) }}" class="friend-item">
+                    <div class="friend-item">
                         <img src="{{ url_for('static', filename=organizer.avatar_url) if organizer.avatar_url else url_for('static', filename='images/default-avatar.png') }}" 
                              class="user-avatar"
                              alt="{{ organizer.username }}">
-                        <span>{{ organizer.username }}</span>
-                    </a>
+                        <a href="{{ url_for('user_profile', username=organizer.username) }}" style="color: white; text-decoration: none;">
+                            {{ organizer.username }}
+                        </a>
+                        <div class="subscription-actions">
+                            <span style="color: #ffa31a; margin-right: 10px;">Подписчиков: {{ organizer.followers.count() }}</span>
+                            <button class="menu-btn unsubscribe-btn" 
+                                    onclick="toggleSubscription({{ organizer.id }}, this, true)">
+                                Отписаться
+                            </button>
+                        </div>
+                    </div>
                 {% else %}
                     <p class="empty-message">Вы не подписаны ни на одного организатора</p>
                 {% endfor %}
@@ -70,9 +94,9 @@
             });
         });
 
-        function toggleSubscription(organizerId, btn) {
+        function toggleSubscription(organizerId, btn, isUnsubscribe = false) {
             btn.disabled = true;
-            btn.textContent = '...';
+            btn.textContent = isUnsubscribe ? 'Отписываюсь...' : 'Подписываюсь...';
             
             fetch('/toggle_subscription', {
                 method: 'POST',
@@ -82,10 +106,26 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    btn.textContent = data.action === 'subscribed' ? '✓' : '+';
-                    btn.classList.toggle('active', data.action === 'subscribed');
+                    if (isUnsubscribe) {
+                        // Удаляем элемент из списка
+                        btn.closest('.friend-item').remove();
+                        
+                        // Если список пуст, показываем сообщение
+                        if (document.querySelectorAll('#subscriptions-list .friend-item').length === 0) {
+                            document.getElementById('subscriptions-list').innerHTML = 
+                                '<p class="empty-message">Вы не подписаны ни на одного организатора</p>';
+                        }
+                    } else {
+                        // Обновляем кнопку в результатах поиска
+                        btn.textContent = '✓ Подписано';
+                        btn.style.background = '#4CAF50';
+                        btn.disabled = true;
+                        
+                        // Можно добавить организатора в список подписок без перезагрузки
+                        // location.reload(); // Или просто перезагрузить страницу
+                    }
                 } else {
-                    btn.textContent = 'Ошибка';
+                    btn.textContent = isUnsubscribe ? 'Ошибка отписки' : 'Ошибка подписки';
                 }
                 btn.disabled = false;
             })
