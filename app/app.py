@@ -1922,11 +1922,75 @@ def get_event_stats(event_id):
         app.logger.error(f"Stats error: {str(e)}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
 
+@app.route('/subscriptions')
+def subscriptions():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.filter_by(username=session['username']).first()
+    return render_template('subscriptions.html', user=user)
 
+@app.route('/toggle_subscription', methods=['POST'])
+def toggle_subscription():
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json()
+    organizer_id = data.get('organizer_id')
+    
+    user = User.query.filter_by(username=session['username']).first()
+    organizer = User.query.get(organizer_id)
+    
+    if not organizer or organizer.role != 'organizer':
+        return jsonify({"error": "Organizer not found"}), 404
+    
+    try:
+        # Проверяем текущую подписку
+        subscription = UserOrganizer.query.filter_by(
+            user_id=user.id,
+            organizer_id=organizer.id
+        ).first()
+        
+        if subscription:
+            # Отписываемся
+            db.session.delete(subscription)
+            action = 'unsubscribed'
+        else:
+            # Подписываемся
+            new_sub = UserOrganizer(user_id=user.id, organizer_id=organizer.id)
+            db.session.add(new_sub)
+            action = 'subscribed'
+        
+        db.session.commit()
+        return jsonify({
+            "success": True,
+            "action": action,
+            "followers_count": organizer.followers.count()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
-
-
-
+@app.route('/search_organizers')
+def search_organizers():
+    if 'username' not in session:
+        return jsonify([])
+    
+    search_query = request.args.get('q', '').strip()
+    current_user_id = User.query.filter_by(username=session['username']).first().id
+    
+    organizers = User.query.filter(
+        User.username.ilike(f'%{search_query}%'),
+        User.role == 'organizer',
+        User.id != current_user_id
+    ).limit(10).all()
+    
+    return jsonify([{
+        'id': org.id,
+        'username': org.username,
+        'avatar_url': org.avatar_url 
+    } for org in organizers])
 
 if __name__ == '__main__':
     app.run(debug=True)

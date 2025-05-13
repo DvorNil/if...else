@@ -30,6 +30,18 @@
             {% else %}
                 <p class="warning">Вы не друзья с этим пользователем, либо пользователь имеет закрытый профиль</p>
             {% endif %}
+
+            {% if user.role == 'organizer' %}
+                <p><strong>Подписчики:</strong> {{ user.followers.count() }}</p>
+            {% endif %}
+            
+            {% if not is_own_profile and session.role == 'participant' and user.role == 'organizer' %}
+                <button class="menu-btn" 
+                        onclick="toggleSubscription({{ user.id }}, this)"
+                        {% if user in current_user.favorite_organizers %}style="background: #4CAF50"{% endif %}>
+                    {% if user in current_user.favorite_organizers %}✓ Подписан{% else %}+ Подписаться{% endif %}
+                </button>
+            {% endif %}
         </div>
 
         {% if show_events and is_friend and not user.is_private %}

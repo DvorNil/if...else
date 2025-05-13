@@ -44,6 +44,10 @@
                                 <span class="sidebar-badge">{{ pending_friend_requests }}</span>
                             {% endif %}
                         </a>
+                        <a href="{{ url_for('subscriptions') }}" class="sidebar-item">
+                            <img src="{{ url_for('static', filename='images/subscribe-icon.png') }}" class="sidebar-icon">
+                            <span>Подписки</span>
+                        </a>
                         {% if session.role in ['moderator', 'admin'] %}
                             <a href="{{ url_for('validation') }}" class="sidebar-item">
                                 <img src="{{ url_for('static', filename='images/validation-icon.png') }}" class="sidebar-icon">

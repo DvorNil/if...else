@@ -1143,3 +1143,29 @@ document.getElementById('sidebarOverlay').addEventListener('click', toggleSideba
 document.querySelectorAll('.sidebar-item').forEach(item => {
     item.addEventListener('click', toggleSidebar);
 });
+
+function toggleSubscription(organizerId, btn) {
+    btn.disabled = true;
+    
+    fetch('/toggle_subscription', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({organizer_id: organizerId})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.action === 'subscribed') {
+                btn.textContent = '✓ Подписан';
+                btn.style.background = '#4CAF50';
+            } else {
+                btn.textContent = '+ Подписаться';
+                btn.style.background = '';
+            }
+        }
+        btn.disabled = false;
+    })
+    .catch(() => {
+        btn.disabled = false;
+    });
+}

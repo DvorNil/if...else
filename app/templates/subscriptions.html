@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Мои подписки</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+    </div>
+    
+    <div class="posts-container">
+        <h2>Мои подписки</h2>
+        
+        <div class="search-friends">
+            <input type="text" id="organizer-search" class="search-input" placeholder="Поиск организаторов...">
+            <div class="search-results" id="search-results"></div>
+        </div>
+        
+        <div class="friends-section">
+            <h3>Подписки</h3>
+            <div class="friends-container" id="subscriptions-list">
+                {% for organizer in user.favorite_organizers %}
+                    <a href="{{ url_for('user_profile', username=organizer.username) }}" class="friend-item">
+                        <img src="{{ url_for('static', filename=organizer.avatar_url) if organizer.avatar_url else url_for('static', filename='images/default-avatar.png') }}" 
+                             class="user-avatar"
+                             alt="{{ organizer.username }}">
+                        <span>{{ organizer.username }}</span>
+                    </a>
+                {% else %}
+                    <p class="empty-message">Вы не подписаны ни на одного организатора</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('organizer-search');
+            const searchResults = document.getElementById('search-results');
+
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value.trim();
+                
+                if (query.length < 2) {
+                    searchResults.style.display = 'none';
+                    return;
+                }
+                
+                fetch(`/search_organizers?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(organizers => {
+                        searchResults.innerHTML = organizers.map(org => `
+                            <div class="user-result" data-user-id="${org.id}">
+                                <img src="${org.avatar_url 
+                                    ? '/static/' + org.avatar_url 
+                                    : '/static/images/default-avatar.png'}" 
+                                     class="user-avatar"
+                                     alt="${org.username}">
+                                <span>${org.username}</span>
+                                <button class="menu-btn subscribe-btn" 
+                                        onclick="toggleSubscription(${org.id}, this)">
+                                    Подписаться
+                                </button>
+                            </div>
+                        `).join('');
+                        searchResults.style.display = 'block';
+                    });
+            });
+        });
+
+        function toggleSubscription(organizerId, btn) {
+            btn.disabled = true;
+            btn.textContent = '...';
+            
+            fetch('/toggle_subscription', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({organizer_id: organizerId})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    btn.textContent = data.action === 'subscribed' ? '✓' : '+';
+                    btn.classList.toggle('active', data.action === 'subscribed');
+                } else {
+                    btn.textContent = 'Ошибка';
+                }
+                btn.disabled = false;
+            })
+            .catch(() => {
+                btn.textContent = 'Ошибка';
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
