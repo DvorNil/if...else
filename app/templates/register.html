@@ -48,6 +48,13 @@
             margin-top: 10px;
             border-radius: 8px;
         }
+        .password-mismatch {
+            color: #ff6200;
+            font-size: 0.9em;
+            margin-top: -15px;
+            margin-bottom: 15px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -69,7 +76,11 @@
             <input class="search-input" type="email" name="email" required placeholder="Введите email">
             
             <label>Пароль:</label>
-            <input class="search-input" type="password" name="password" required placeholder="Введите пароль">
+            <input class="search-input" type="password" name="password" id="password" required placeholder="Введите пароль">
+            
+            <label>Повторите пароль:</label>
+            <input class="search-input" type="password" name="password_confirm" id="password_confirm" required placeholder="Повторите пароль">
+            <div class="password-mismatch" id="password-mismatch">Пароли не совпадают</div>
             
             <label>Кто вы:</label>
             <select class="search-input" name="role" id="role-select" onchange="toggleCommentField()">
@@ -83,9 +94,7 @@
                 <textarea name="comment" placeholder="Опишите ваш опыт и причины"></textarea>
             </div>
             
-            <button type="submit" class="menu-btn">Зарегистрироваться</button>
-
-            <a href="{{ url_for('login') }}" class="text-link-login">Уже зарегистрированы?</a>
+            <button type="submit" class="menu-btn" id="submit-btn">Зарегистрироваться</button>
         </form>
     </div>
 
@@ -100,6 +109,34 @@
                 commentField.style.display = 'none';
             }
         }
+
+        function validatePasswords() {
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('password_confirm').value;
+            const mismatchElement = document.getElementById('password-mismatch');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            if (password !== passwordConfirm) {
+                mismatchElement.style.display = 'block';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                return false;
+            } else {
+                mismatchElement.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                return true;
+            }
+        }
+
+        document.getElementById('password').addEventListener('input', validatePasswords);
+        document.getElementById('password_confirm').addEventListener('input', validatePasswords);
+        
+        document.getElementById('register-form').addEventListener('submit', function(e) {
+            if (!validatePasswords()) {
+                e.preventDefault();
+            }
+        });
         
         document.addEventListener('DOMContentLoaded', function() {
             toggleCommentField();

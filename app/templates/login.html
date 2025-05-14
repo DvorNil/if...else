@@ -39,6 +39,11 @@
             text-align: center;
             margin-top: 15px;
         }
+        .attempts-left {
+            color: #ff6200;
+            text-align: center;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -53,6 +58,9 @@
         {% if error %}
             <p style="color: #ff6200; text-align: center;">{{ error }}</p>
         {% endif %}
+        {% if attempts_left %}
+            <p class="attempts-left">Осталось попыток: {{ attempts_left }}</p>
+        {% endif %}
         <form method="POST">
             <label>Имя пользователя:</label>
             <input class="search-input" type="text" name="username" required placeholder="Введите логин">
@@ -63,8 +71,6 @@
             <button type="submit" class="menu-btn">Войти</button>
 
             <a href="{{ url_for('reset_password_request') }}" class="text-link-login">Забыли пароль?</a>
-
-            <a href="{{ url_for('register') }}" class="text-link-login">Нет аккаунта? Зарегистрируйтесь!</a>
         </form>
     </div>
 </body>

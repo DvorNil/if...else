@@ -2,22 +2,22 @@ from flask import Flask, render_template, request, session, redirect, url_for, j
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from werkzeug.utils import secure_filename
 import folium
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy import func
-from datetime import datetime, timedelta
 from sqlalchemy.ext.hybrid import hybrid_property
 import math
 from sqlalchemy.orm import joinedload
-
 from pyotp import TOTP, random_base32
 import qrcode
 from io import BytesIO
 import base64
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 app.secret_key = '6jujmgkxze4png8ch3xg8r3052a01ia'
@@ -37,11 +37,21 @@ app.config['SECURITY_PASSWORD_SALT'] = 'salt52n1o0jnv2omiv0kmn94aoaomm6sex5'
 app.config['SECURITY_PASSWORD_RESET_SALT'] = 'passwordreset1xms4p9t8qyiapwpe2zsq'
 app.config['MAX_AVATAR_SIZE'] = 2 * 1024 * 1024  # 2MB
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
+app.config['MAX_LOGIN_ATTEMPTS'] = 5  # Максимальное количество попыток входа
+app.config['LOGIN_BLOCK_TIME'] = 300  # Время блокировки в секундах (5 минут)
+
 Session(app)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
+
 
 ROLE_TRANSLATIONS = {
     'participant': 'Участник',
@@ -49,6 +59,68 @@ ROLE_TRANSLATIONS = {
     'admin': 'Администратор',
     'moderator': 'Модератор'
 }
+
+# Модель для отслеживания попыток входа
+class LoginAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(45), nullable=False)
+    attempts = db.Column(db.Integer, default=0)
+    last_attempt = db.Column(db.DateTime)
+    blocked_until = db.Column(db.DateTime)
+
+@app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
+def login():
+    if request.method == 'POST':
+        ip_address = request.remote_addr
+        attempt = LoginAttempt.query.filter_by(ip_address=ip_address).first()
+        
+        # Проверка блокировки
+        if attempt and attempt.blocked_until and attempt.blocked_until > datetime.utcnow():
+            time_left = (attempt.blocked_until - datetime.utcnow()).seconds
+            return render_template('login.html', 
+                                error=f"Слишком много попыток входа. Попробуйте снова через {time_left} секунд")
+        
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        
+        if not attempt:
+            attempt = LoginAttempt(ip_address=ip_address)
+            db.session.add(attempt)
+        
+        if user and bcrypt.check_password_hash(user.password, password):
+            # Успешный вход - сбрасываем счетчик попыток
+            attempt.attempts = 0
+            attempt.blocked_until = None
+            db.session.commit()
+            
+            if not user.email_confirmed:
+                return render_template('login.html', error="Пожалуйста, подтвердите ваш email перед входом.")
+            
+            if user.is_2fa_enabled:
+                session['pending_2fa_user'] = user.username
+                return redirect(url_for('verify_2fa_login'))
+
+            session['username'] = username
+            session['role'] = user.role
+            return redirect(url_for('home'))
+        else:
+            # Неудачная попытка входа
+            attempt.attempts += 1
+            attempt.last_attempt = datetime.utcnow()
+            
+            if attempt.attempts >= app.config['MAX_LOGIN_ATTEMPTS']:
+                attempt.blocked_until = datetime.utcnow() + timedelta(
+                    seconds=app.config['LOGIN_BLOCK_TIME'])
+            
+            db.session.commit()
+            
+            return render_template('login.html', 
+                                error="Неверный логин или пароль. Осталось попыток: {}".format(
+                                    app.config['MAX_LOGIN_ATTEMPTS'] - attempt.attempts))
+    
+    return render_template('login.html', error=None)
 
 # Модель пользователя
 class User(db.Model):
@@ -455,29 +527,6 @@ def home():
                          selected_tag=selected_tag,
                          selected_sort=selected_sort)
 
-# Страница входа
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-        
-        if user and bcrypt.check_password_hash(user.password, password):
-            if not user.email_confirmed:
-                return render_template('login.html', error="Пожалуйста, подтвердите ваш email перед входом.")
-            
-            if user.is_2fa_enabled:
-                session['pending_2fa_user'] = user.username
-                return redirect(url_for('verify_2fa_login'))
-
-            session['username'] = username
-            session['role'] = user.role
-            return redirect(url_for('home'))
-        
-        return render_template('login.html', error="Неверный логин или пароль")
-    return render_template('login.html', error=None)
-
 # Страница регистрации
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -485,11 +534,15 @@ def register():
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
+        password_confirm = request.form.get('password_confirm')
         role = request.form.get('role')
         comment = request.form.get('comment', '')
         
-        if not username or not email or not password:
+        if not username or not email or not password or not password_confirm:
             return render_template('register.html', error="Все поля обязательны для заполнения")
+        
+        if password != password_confirm:
+            return render_template('register.html', error="Пароли не совпадают")
         
         if User.query.filter_by(username=username).first():
             return render_template('register.html', error="Пользователь с таким именем уже существует")
@@ -526,7 +579,6 @@ def register():
             sender=app.config['MAIL_DEFAULT_SENDER']
         )
         
-        # Явно указываем HTML и текстовую версии
         msg.body = f"Для подтверждения email перейдите по ссылке: {confirm_url}"
         msg.html = render_template(
             'email_confirmation_message.html',
@@ -536,17 +588,10 @@ def register():
         
         try:
             mail.send(msg)
-
-            # Небольшая отладка
-            print("письмо отправлено")
-
             return render_template('register.html',
                                 success="Письмо с подтверждением отправлено!")
         except Exception as e:
             print(f"Ошибка отправки письма: {str(e)}")
-            # Логируем детали ошибки SMTP, если они есть
-            if hasattr(e, 'smtp_error'):
-                print(f"SMTP error: {e.smtp_error}")
             return render_template('register.html',
                                 error=f"Ошибка отправки письма: {str(e)}")
     
