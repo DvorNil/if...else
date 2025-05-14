@@ -18,42 +18,74 @@
             color: white;
             margin-top: 5px;
         }
+        .auth-container {
+            background: #2a2a2a;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            margin: 50px auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .auth-container h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ff6200;
+        }
+        .auth-container label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+        .auth-container .search-input {
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .auth-container .menu-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
     </div>
-    <div class="posts-container">
+    <div class="auth-container">
         <h2>Регистрация</h2>
         {% if error %}
-            <p style="color: #ff6200;">{{ error }}</p>
+            <p style="color: #ff6200; text-align: center;">{{ error }}</p>
         {% elif success %}
-            <p style="color: green;">{{ success }}</p>
+            <p style="color: green; text-align: center;">{{ success }}</p>
         {% endif %}
         <form method="POST" id="register-form">
-            <label>Имя пользователя:</label><br>
-            <input class="search-input" type="text" name="username" required placeholder="Введите логин"><br><br>
+            <label>Имя пользователя:</label>
+            <input class="search-input" type="text" name="username" required placeholder="Введите логин">
             
-            <label>Email:</label><br>
-            <input class="search-input" type="email" name="email" required placeholder="Введите email"><br><br>
+            <label>Email:</label>
+            <input class="search-input" type="email" name="email" required placeholder="Введите email">
             
-            <label>Пароль:</label><br>
-            <input class="search-input" type="password" name="password" required placeholder="Введите пароль"><br><br>
+            <label>Пароль:</label>
+            <input class="search-input" type="password" name="password" required placeholder="Введите пароль">
             
-            <label>Кто вы:</label><br>
-            <select class="menu-btn" name="role" id="role-select" onchange="toggleCommentField()">
+            <label>Кто вы:</label>
+            <select class="search-input" name="role" id="role-select" onchange="toggleCommentField()">
                 <option value="participant">Участник</option>
                 <option value="organizer">Организатор</option>
                 <option value="moderator">Модератор</option>
-            </select><br><br>
+            </select>
             
             <div id="comment-field">
-                <label>Почему вы хотите стать организатором/модератором:</label><br>
-                <textarea name="comment" placeholder="Опишите ваш опыт и причины"></textarea><br>
+                <label>Почему вы хотите стать организатором/модератором:</label>
+                <textarea name="comment" placeholder="Опишите ваш опыт и причины"></textarea>
             </div>
             
             <button type="submit" class="menu-btn">Зарегистрироваться</button>
+
+            <a href="{{ url_for('login') }}" class="text-link-login">Уже зарегистрированы?</a>
         </form>
     </div>
 
@@ -69,7 +101,6 @@
             }
         }
         
-        // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function() {
             toggleCommentField();
         });
