@@ -71,7 +71,7 @@
 
                         {% if session.role in ['organizer', 'moderator', 'admin'] and not current_user.validation %}
                             <a href="{{ url_for('add_tag') }}" class="sidebar-item">
-                                <img src="{{ url_for('static', filename='images/tag-icon.png') }}" class="sidebar-icon">
+                                <img src="{{ url_for('static', filename='images/tags-icon.png') }}" class="sidebar-icon">
                                 <span>Добавить тег</span>
                             </a>
                         {% endif %}   

@@ -1314,7 +1314,7 @@ input:checked + .slider:before {
     left: -300px;
     width: 280px;
     height: 100%;
-    background: #1b1b1b;
+    background: #1a1a1a;
     z-index: 1000;
     transition: all 0.3s ease;
     overflow-y: auto;
@@ -1330,7 +1330,7 @@ input:checked + .slider:before {
     top: 15px;
     right: 15px;
     font-size: 28px;
-    color: #ffa31a;
+    color: #ff6200;
     cursor: pointer;
     transition: transform 0.2s;
 }
@@ -1350,7 +1350,7 @@ input:checked + .slider:before {
     height: 80px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #ffa31a;
+    border: 3px solid #ff6200;
     margin-bottom: 10px;
 }
 
@@ -1376,8 +1376,8 @@ input:checked + .slider:before {
 }
 
 .sidebar-item:hover {
-    background: #292929;
-    color: #ffa31a;
+    background: #2a2a2a;
+    color: #ff6200;
 }
 
 .sidebar-icon {
@@ -1410,7 +1410,7 @@ input:checked + .slider:before {
     display: block;
     width: 25px;
     height: 3px;
-    background: #ffa31a;
+    background: #ff6200;
     margin: 4px 0;
     transition: all 0.3s ease;
 }
@@ -1431,7 +1431,7 @@ input:checked + .slider:before {
     display: flex;
     align-items: center;
     padding: 15px;
-    background: #292929;
+    background: #2a2a2a;
     border-radius: 8px;
     margin-bottom: 10px;
 }
@@ -1456,7 +1456,7 @@ input:checked + .slider:before {
 }
 
 .followers-count {
-    color: #ffa31a;
+    color: #ff6200;
     font-size: 0.9em;
 }
 

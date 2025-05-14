@@ -53,7 +53,7 @@
                             {{ organizer.username }}
                         </a>
                         <div class="subscription-actions">
-                            <span style="color: #ffa31a; margin-right: 10px;">Подписчиков: {{ organizer.followers.count() }}</span>
+                            <span style="color: #ff6200; margin-right: 10px;">Подписчиков: {{ organizer.followers.count() }}</span>
                             <button class="menu-btn unsubscribe-btn" 
                                     onclick="toggleSubscription({{ organizer.id }}, this, true)">
                                 Отписаться
@@ -225,7 +225,7 @@
                     ${username}
                 </a>
                 <div class="subscription-actions">
-                    <span style="color: #ffa31a; margin-right: 10px;">Подписчиков: ${followersCount}</span>
+                    <span style="color: #ff6200; margin-right: 10px;">Подписчиков: ${followersCount}</span>
                     <button class="menu-btn unsubscribe-btn" 
                             onclick="toggleSubscription(${organizerId}, this, true)">
                         Отписаться

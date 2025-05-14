@@ -37,7 +37,7 @@ app.config['SECURITY_PASSWORD_SALT'] = 'salt52n1o0jnv2omiv0kmn94aoaomm6sex5'
 app.config['SECURITY_PASSWORD_RESET_SALT'] = 'passwordreset1xms4p9t8qyiapwpe2zsq'
 app.config['MAX_AVATAR_SIZE'] = 2 * 1024 * 1024  # 2MB
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
-app.config['MAX_LOGIN_ATTEMPTS'] = 5  # Максимальное количество попыток входа
+app.config['MAX_LOGIN_ATTEMPTS'] = 20  # Максимальное количество попыток входа
 app.config['LOGIN_BLOCK_TIME'] = 300  # Время блокировки в секундах (5 минут)
 
 Session(app)
@@ -69,7 +69,7 @@ class LoginAttempt(db.Model):
     blocked_until = db.Column(db.DateTime)
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per 5 minutes")
+@limiter.limit("50 per minute")
 def login():
     if request.method == 'POST':
         ip_address = request.remote_addr
