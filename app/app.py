@@ -69,14 +69,20 @@ class LoginAttempt(db.Model):
     blocked_until = db.Column(db.DateTime)
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("5 per 5 minutes")
 def login():
     if request.method == 'POST':
         ip_address = request.remote_addr
         attempt = LoginAttempt.query.filter_by(ip_address=ip_address).first()
         
+        # Если записи нет, создаём новую
+        if not attempt:
+            attempt = LoginAttempt(ip_address=ip_address, attempts=0)
+            db.session.add(attempt)
+            db.session.commit()  # Фиксируем сразу, чтобы избежать проблем
+        
         # Проверка блокировки
-        if attempt and attempt.blocked_until and attempt.blocked_until > datetime.utcnow():
+        if attempt.blocked_until and attempt.blocked_until > datetime.utcnow():
             time_left = (attempt.blocked_until - datetime.utcnow()).seconds
             return render_template('login.html', 
                                 error=f"Слишком много попыток входа. Попробуйте снова через {time_left} секунд")
@@ -84,10 +90,6 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
-        
-        if not attempt:
-            attempt = LoginAttempt(ip_address=ip_address)
-            db.session.add(attempt)
         
         if user and bcrypt.check_password_hash(user.password, password):
             # Успешный вход - сбрасываем счетчик попыток
