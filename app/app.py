@@ -2115,13 +2115,15 @@ def get_comments():
     event_id = request.args.get('event_id')
     current_user = User.query.filter_by(username=session.get('username')).first()
     
-    comments = Comment.query.filter_by(event_id=event_id).join(User).all()
+    comments = Comment.query.options(joinedload(Comment.user)).filter_by(event_id=event_id).all()
     
     return jsonify([{
         'id': c.id,
         'text': c.text,
         'created_at': c.created_at.isoformat(),
         'username': c.user.username,
+         'avatar': f"/static/{c.user.avatar_url}" if c.user.avatar_url 
+                 else '/static/images/default_avatar.png',
         'can_delete': (
             (current_user and c.user_id == current_user.id) or 
             (current_user and current_user.role in ['admin', 'moderator'])

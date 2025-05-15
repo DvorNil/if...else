@@ -1240,12 +1240,13 @@ function loadComments(eventId) {
             container.innerHTML = comments.map(comment => `
                 <div class="comment-item" data-comment-id="${comment.id}">
                     <div class="comment-header">
+                        <img src="${comment.avatar}" class="comment-avatar" alt="Аватар">
                         <div class="comment-meta">
                             <span class="comment-author">${comment.username}</span>
                             <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
                         </div>
                         ${comment.can_delete ? 
-                            '<div class="delete-comment" onclick="deleteComment(' + comment.id + ')">Удалить комментарий</div>' : 
+                            '<div class="delete-comment" onclick="deleteComment(${comment.id})">Удалить</div>' : 
                             ''}
                     </div>
                     <p>${escapeHtml(comment.text)}</p>
