@@ -1356,3 +1356,27 @@ async function deleteComment(commentId) {
         console.error('Ошибка:', error);
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = urlParams.get('event_id');
+    
+    if (eventId) {
+        fetch(`/get_event_data?event_id=${eventId}`)
+            .then(response => response.json())
+            .then(eventData => {
+                showModal(eventData);
+                history.replaceState({}, document.title, window.location.pathname);
+            })
+            .catch(error => console.error('Error loading event:', error));
+    }
+});
+
+function copyEventLink() {
+    const eventId = currentEventData.eventId;
+    const link = `${window.location.origin}/event/${eventId}`;
+    
+    navigator.clipboard.writeText(link)
+        .then(() => alert('Ссылка скопирована в буфер обмена!'))
+        .catch(() => prompt('Скопируйте ссылку вручную:', link));
+}

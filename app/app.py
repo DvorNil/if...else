@@ -2147,5 +2147,35 @@ def get_comments():
 def check_auth():
     return jsonify({'authenticated': 'username' in session}), 200
 
+@app.route('/get_event_data')
+def get_event_data():
+    event_id = request.args.get('event_id')
+    event = Event.query.get_or_404(event_id)
+    
+    return jsonify({
+        'eventId': event.id,
+        'title': event.title,
+        'description': event.description,
+        'locationName': event.location_name,
+        'tags': ', '.join([tag.name for tag in event.tags]),
+        'eventType': event.event_type,
+        'locationAddress': event.location_address,
+        'lat': event.lat,
+        'lng': event.lng,
+        'imageUrl': event.image_url,
+        'isPrivate': event.is_private,
+        'format': event.format,
+        'onlineInfo': event.online_info,
+        'dateTime': event.date_time.isoformat(),
+        'duration': event.duration,
+        'organizerUsername': event.organizer.username
+    })
+
+@app.route('/event/<int:event_id>')
+def share_event(event_id):
+    event = Event.query.get_or_404(event_id)
+    return redirect(url_for('home', event_id=event_id))
+
+
 if __name__ == '__main__':
     app.run(debug=True)

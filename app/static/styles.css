@@ -1613,3 +1613,10 @@ input:checked + .slider:before {
 .comment-author-link:hover {
     text-decoration: underline;
 }
+
+.share-btn {
+    background: rgba(255, 98, 0, 0.4) !important;
+}
+.share-btn:hover {
+    background: #ff6200 !important;
+}
