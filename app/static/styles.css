@@ -1603,3 +1603,13 @@ input:checked + .slider:before {
 .comment-meta {
     flex-grow: 1;
 }
+
+.comment-author-link {
+    color: #ff6200;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.comment-author-link:hover {
+    text-decoration: underline;
+}

@@ -2084,6 +2084,19 @@ def add_comment():
     data = request.json
     user = User.query.filter_by(username=session['username']).first()
     
+    # Проверка ограничения (кроме админов и модераторов)
+    if user.role not in ['admin', 'moderator']:
+        ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
+        recent_comments = Comment.query.filter(
+            Comment.user_id == user.id,
+            Comment.created_at >= ten_minutes_ago
+        ).count()
+        
+        if recent_comments >= 10:
+            return jsonify({
+                'error': 'Превышен лимит: не более 10 комментариев за 10 минут'
+            }), 429
+
     new_comment = Comment(
         user_id=user.id,
         event_id=data['event_id'],

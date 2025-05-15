@@ -1240,13 +1240,16 @@ function loadComments(eventId) {
             container.innerHTML = comments.map(comment => `
                 <div class="comment-item" data-comment-id="${comment.id}">
                     <div class="comment-header">
-                        <img src="${comment.avatar}" class="comment-avatar" alt="Аватар">
+                        <img src="${comment.avatar}" class="comment-avatar" 
+                            onerror="this.src='/static/images/default_avatar.png'">
                         <div class="comment-meta">
-                            <span class="comment-author">${comment.username}</span>
+                            <a href="/profile/${comment.username}" class="comment-author-link">
+                                ${comment.username}
+                            </a>
                             <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
                         </div>
                         ${comment.can_delete ? 
-                            '<div class="delete-comment" onclick="deleteComment(${comment.id})">Удалить</div>' : 
+                            `<div class="delete-comment" onclick="deleteComment(${comment.id})">Удалить</div>` : 
                             ''}
                     </div>
                     <p>${escapeHtml(comment.text)}</p>
@@ -1270,7 +1273,7 @@ function handleCommentPost() {
         alertBox.style.display = 'block';
         textArea.style.borderColor = '#ff4444';
         return;
-    }
+    }   
 
     const text = textArea.value.trim();
     if (!text) {
