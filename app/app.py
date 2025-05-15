@@ -60,70 +60,6 @@ ROLE_TRANSLATIONS = {
     'moderator': 'Модератор'
 }
 
-# Модель для отслеживания попыток входа
-class LoginAttempt(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    ip_address = db.Column(db.String(45), nullable=False)
-    attempts = db.Column(db.Integer, default=0)
-    last_attempt = db.Column(db.DateTime)
-    blocked_until = db.Column(db.DateTime)
-
-@app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("50 per minute")
-def login():
-    if request.method == 'POST':
-        ip_address = request.remote_addr
-        attempt = LoginAttempt.query.filter_by(ip_address=ip_address).first()
-        
-        # Если записи нет, создаём новую
-        if not attempt:
-            attempt = LoginAttempt(ip_address=ip_address, attempts=0)
-            db.session.add(attempt)
-            db.session.commit()  # Фиксируем сразу, чтобы избежать проблем
-        
-        # Проверка блокировки
-        if attempt.blocked_until and attempt.blocked_until > datetime.utcnow():
-            time_left = (attempt.blocked_until - datetime.utcnow()).seconds
-            return render_template('login.html', 
-                                error=f"Слишком много попыток входа. Попробуйте снова через {time_left} секунд")
-        
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-        
-        if user and bcrypt.check_password_hash(user.password, password):
-            # Успешный вход - сбрасываем счетчик попыток
-            attempt.attempts = 0
-            attempt.blocked_until = None
-            db.session.commit()
-            
-            if not user.email_confirmed:
-                return render_template('login.html', error="Пожалуйста, подтвердите ваш email перед входом.")
-            
-            if user.is_2fa_enabled:
-                session['pending_2fa_user'] = user.username
-                return redirect(url_for('verify_2fa_login'))
-
-            session['username'] = username
-            session['role'] = user.role
-            return redirect(url_for('home'))
-        else:
-            # Неудачная попытка входа
-            attempt.attempts += 1
-            attempt.last_attempt = datetime.utcnow()
-            
-            if attempt.attempts >= app.config['MAX_LOGIN_ATTEMPTS']:
-                attempt.blocked_until = datetime.utcnow() + timedelta(
-                    seconds=app.config['LOGIN_BLOCK_TIME'])
-            
-            db.session.commit()
-            
-            return render_template('login.html', 
-                                error="Неверный логин или пароль. Осталось попыток: {}".format(
-                                    app.config['MAX_LOGIN_ATTEMPTS'] - attempt.attempts))
-    
-    return render_template('login.html', error=None)
-
 # Модель пользователя
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -353,6 +289,14 @@ class EventView(db.Model):
 
 db.Index('ix_recommendation_receiver', Recommendation.receiver_id)
 
+# Модель для отслеживания попыток входа
+class LoginAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(45), nullable=False)
+    attempts = db.Column(db.Integer, default=0)
+    last_attempt = db.Column(db.DateTime)
+    blocked_until = db.Column(db.DateTime)
+
 # Создание таблиц и добавление начальных данных
 with app.app_context():
     db.create_all()
@@ -528,6 +472,64 @@ def home():
                          search_query=search_query,
                          selected_tag=selected_tag,
                          selected_sort=selected_sort)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("50 per minute")
+def login():
+    if request.method == 'POST':
+        ip_address = request.remote_addr
+        attempt = LoginAttempt.query.filter_by(ip_address=ip_address).first()
+        
+        # Если записи нет, создаём новую
+        if not attempt:
+            attempt = LoginAttempt(ip_address=ip_address, attempts=0)
+            db.session.add(attempt)
+            db.session.commit()  # Фиксируем сразу, чтобы избежать проблем
+        
+        # Проверка блокировки
+        if attempt.blocked_until and attempt.blocked_until > datetime.utcnow():
+            time_left = (attempt.blocked_until - datetime.utcnow()).seconds
+            return render_template('login.html', 
+                                error=f"Слишком много попыток входа. Попробуйте снова через {time_left} секунд")
+        
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        
+        if user and bcrypt.check_password_hash(user.password, password):
+            # Успешный вход - сбрасываем счетчик попыток
+            attempt.attempts = 0
+            attempt.blocked_until = None
+            db.session.commit()
+            
+            if not user.email_confirmed:
+                return render_template('login.html', error="Пожалуйста, подтвердите ваш email перед входом.")
+            
+            if user.is_2fa_enabled:
+                session['pending_2fa_user'] = user.username
+                return redirect(url_for('verify_2fa_login'))
+
+            session['username'] = username
+            session['role'] = user.role
+            return redirect(url_for('home'))
+        else:
+            # Неудачная попытка входа
+            attempt.attempts += 1
+            attempt.last_attempt = datetime.utcnow()
+            
+            if attempt.attempts >= app.config['MAX_LOGIN_ATTEMPTS']:
+                attempt.blocked_until = datetime.utcnow() + timedelta(
+                    seconds=app.config['LOGIN_BLOCK_TIME'])
+            
+            db.session.commit()
+            
+            return render_template('login.html', 
+                                error="Неверный логин или пароль. Осталось попыток: {}".format(
+                                    app.config['MAX_LOGIN_ATTEMPTS'] - attempt.attempts))
+    
+    return render_template('login.html', error=None)
+
 
 # Страница регистрации
 @app.route('/register', methods=['GET', 'POST'])
