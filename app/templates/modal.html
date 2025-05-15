@@ -71,6 +71,30 @@
                     <button onclick="toggleFriendList()" class="menu-btn">Отмена</button>
                 </div>
             </div>
+            <div class="comments-section">
+                <h3>Комментарии</h3>
+                <div id="comment-form">
+                    <div class="auth-alert" id="comment-auth-alert">
+                        Чтобы оставить комментарий, пожалуйста 
+                        <a href="/login" class="auth-link">войдите</a> или 
+                        <a href="/register" class="auth-link">зарегистрируйтесь</a>
+                    </div>
+                    
+                    <textarea 
+                        id="comment-text" 
+                        class="comment-textarea"
+                        placeholder="Напишите ваш комментарий..." 
+                        rows="4"
+                    ></textarea>
+                    
+                    <div class="comment-controls">
+                        <button onclick="handleCommentPost()" class="comment-submit-btn">
+                            Отправить
+                        </button>
+                    </div>
+                    <div id="comments-container" class="comments-container"></div>
+                </div>
+            </div>
         </div>
     </div>
     <input type="hidden" id="modal-event-data" value="">

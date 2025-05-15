@@ -115,15 +115,15 @@ function showModal(eventData) {
         console.error('Ошибка инициализации трекера:', e);
     }
 
-     // Установить ID мероприятия для рейтинга
-     const stars = document.querySelectorAll('#modal-star-rating span');
-     stars.forEach(star => {
-         star.style.color = '#ddd';
-         star.classList.remove('active');
-     });
-     document.getElementById('modal-star-rating').dataset.eventId = eventData.eventId;
-     updateRatingStars(eventData.eventId);
-
+    // Установить ID мероприятия для рейтинга
+    const stars = document.querySelectorAll('#modal-star-rating span');
+    stars.forEach(star => {
+        star.style.color = '#ddd';
+        star.classList.remove('active');
+    });
+    document.getElementById('modal-star-rating').dataset.eventId = eventData.eventId;
+    updateRatingStars(eventData.eventId);
+    loadComments(eventData.eventId);
     const statusControls = document.querySelector('.status-controls');
     const newControls = statusControls.cloneNode(true);
     statusControls.parentNode.replaceChild(newControls, statusControls);
@@ -1230,4 +1230,125 @@ function removeFriend(friendId, btn) {
         btn.textContent = 'Удалить';
         alert('Ошибка при удалении: ' + error.message);
     });
+}
+
+function loadComments(eventId) {
+    fetch(`/get_comments?event_id=${eventId}`)
+        .then(response => response.json())
+        .then(comments => {
+            const container = document.getElementById('comments-container');
+            container.innerHTML = comments.map(comment => `
+                <div class="comment-item" data-comment-id="${comment.id}">
+                    <div class="comment-header">
+                        <div class="comment-meta">
+                            <span class="comment-author">${comment.username}</span>
+                            <span class="comment-date">${new Date(comment.created_at).toLocaleString()}</span>
+                        </div>
+                        ${comment.can_delete ? 
+                            '<div class="delete-comment" onclick="deleteComment(' + comment.id + ')">Удалить комментарий</div>' : 
+                            ''}
+                    </div>
+                    <p>${escapeHtml(comment.text)}</p>
+                </div>
+            `).join('');
+        });
+}
+
+
+function handleCommentPost() {
+    const textArea = document.getElementById('comment-text');
+    const alertBox = document.getElementById('comment-auth-alert');
+    
+    // Сброс предыдущих сообщений
+    alertBox.style.display = 'none';
+    textArea.style.borderColor = '#ff6200';
+
+    // Проверка авторизации
+    if (!isUserLoggedIn()) {
+        textArea.disabled = true;
+        alertBox.style.display = 'block';
+        textArea.style.borderColor = '#ff4444';
+        return;
+    }
+
+    const text = textArea.value.trim();
+    if (!text) {
+        alertBox.textContent = "Комментарий не может быть пустым!";
+        alertBox.style.display = 'block';
+        return;
+    }
+
+    postComment(text);
+}
+
+function isUserLoggedIn() {
+    return fetch('/check_auth', { credentials: 'include' })
+        .then(response => response.ok)
+        .catch(() => false);
+}
+
+async function postComment(text) {
+    try {
+        const response = await fetch('/add_comment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                event_id: currentEventData.eventId,
+                text: escapeHtml(text)
+            })
+        });
+
+        if (response.status === 401) {
+            throw new Error('Требуется авторизация');
+        }
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Ошибка сервера');
+        }
+
+        document.getElementById('comment-text').value = '';
+        loadComments(currentEventData.eventId);
+    } catch (error) {
+        const alertBox = document.getElementById('comment-auth-alert');
+        alertBox.innerHTML = `❌ ${error.message}`;
+        alertBox.style.display = 'block';
+    }
+}
+
+// Утилита для экранирования HTML
+function escapeHtml(unsafe) {
+    return unsafe.replace(/[&<"'>]/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[m]));
+}
+
+async function deleteComment(commentId) {
+    if (!confirm('Удалить комментарий?')) return;
+
+    try {
+        const response = await fetch(`/delete_comment/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            document.querySelector(`[data-comment-id="${commentId}"]`).remove();
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Ошибка удаления');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+    }
 }

@@ -297,6 +297,17 @@ class LoginAttempt(db.Model):
     last_attempt = db.Column(db.DateTime)
     blocked_until = db.Column(db.DateTime)
 
+# Модель комментария
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='comments')
+    event = db.relationship('Event', backref='comments')
+
 # Создание таблиц и добавление начальных данных
 with app.app_context():
     db.create_all()
@@ -2064,6 +2075,62 @@ def remove_friend():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+@app.route('/add_comment', methods=['POST'])
+def add_comment():
+    if 'username' not in session:
+        return jsonify({'error': 'Требуется авторизация. Пожалуйста, войдите в систему.'}), 401
+        
+    data = request.json
+    user = User.query.filter_by(username=session['username']).first()
+    
+    new_comment = Comment(
+        user_id=user.id,
+        event_id=data['event_id'],
+        text=data['text'][:500]  # Ограничение длины
+    )
+    db.session.add(new_comment)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/delete_comment/<int:comment_id>', methods=['DELETE'])
+def delete_comment(comment_id):
+    if 'username' not in session:
+        return jsonify({'error': 'Требуется авторизация'}), 401
+        
+    comment = Comment.query.get_or_404(comment_id)
+    user = User.query.filter_by(username=session['username']).first()
+    
+    # Проверка прав: автор или админ/модератор
+    if not (comment.user_id == user.id or user.role in ['admin', 'moderator']):
+        return jsonify({'error': 'Нет прав на удаление'}), 403
+    
+    db.session.delete(comment)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/get_comments')
+def get_comments():
+    event_id = request.args.get('event_id')
+    current_user = User.query.filter_by(username=session.get('username')).first()
+    
+    comments = Comment.query.filter_by(event_id=event_id).join(User).all()
+    
+    return jsonify([{
+        'id': c.id,
+        'text': c.text,
+        'created_at': c.created_at.isoformat(),
+        'username': c.user.username,
+        'can_delete': (
+            (current_user and c.user_id == current_user.id) or 
+            (current_user and current_user.role in ['admin', 'moderator'])
+        )
+    } for c in comments])
+
+@app.route('/check_auth')
+def check_auth():
+    return jsonify({'authenticated': 'username' in session}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
