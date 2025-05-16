@@ -1689,3 +1689,111 @@ input:checked + .slider:before {
 .organizer-link:hover {
     text-decoration: underline !important;
 }
+
+.profile-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.profile-action-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Кнопка добавления в друзья */
+.friend-btn {
+    background: rgba(255, 98, 0, 0.15);
+    color: #ff6200;
+    border: 1px solid rgba(255, 98, 0, 0.3);
+}
+
+.friend-btn:hover {
+    background: rgba(255, 98, 0, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(255, 98, 0, 0.1);
+}
+
+.friend-btn:disabled {
+    background: rgba(255, 98, 0, 0.08);
+    color: #ff6200;
+    border-color: transparent;
+    cursor: default;
+    box-shadow: none;
+}
+
+/* Кнопка подписки */
+.subscribe-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(255, 98, 0, 0.1);
+    color: #ff6200;
+    border: 1px solid rgba(255, 98, 0, 0.3);
+    position: relative;
+}
+
+/* Состояние подписки */
+.subscribe-btn.subscribed {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4CAF50;
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+/* Анимация загрузки */
+.subscribe-btn.processing:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Ховер-эффекты */
+.subscribe-btn:not(.subscribed):hover {
+    background: rgba(255, 98, 0, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(255, 98, 0, 0.1);
+}
+
+.subscribe-btn.subscribed:hover {
+    background: rgba(76, 175, 80, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+}
+
+/* Отключенное состояние */
+.subscribe-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Иконка галочки */
+.subscribe-btn:disabled:before,
+.friend-btn:disabled:before {
+    content: "✓";
+    font-weight: bold;
+}

@@ -16,6 +16,28 @@
                  class="user-avatar"
                  alt="Аватар">
         </div>
+        <div class="profile-actions">
+            {% if not is_own_profile %}
+                {% if not is_friend %}
+                    <button class="profile-action-btn friend-btn" 
+                            onclick="sendFriendRequest({{ user.id }}, this)">
+                        Добавить в друзья
+                    </button>
+                {% else %}
+                    <button class="profile-action-btn friend-btn" disabled>
+                        В друзьях
+                    </button>
+                {% endif %}
+                
+                {% if user.role == 'organizer' %}
+                    <button class="profile-action-btn subscribe-btn" 
+                        onclick="toggleSubscription({{ user.id }}, this)"
+                        data-subscribed="{% if user in current_user.favorite_organizers %}true{% else %}false{% endif %}">
+                        {% if user in current_user.favorite_organizers %}✓ Подписан{% else %}Подписаться{% endif %}
+                    </button>
+                {% endif %}
+            {% endif %}
+        </div>
         <div class="profile-info">
             <p><strong>Никнейм:</strong> {{ username }}</p>
             <p><strong>Роль:</strong> {{ role_display }}</p>

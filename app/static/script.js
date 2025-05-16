@@ -1172,7 +1172,7 @@ function toggleSubscription(organizerId, btn, isUnsubscribe = false) {
                 }
             } else {
                 // Обновляем UI для кнопки подписки
-                btn.textContent = '✓ Подписано';
+                btn.textContent = '✓ Вы подписаны';
                 btn.style.background = '#4CAF50';
                 btn.onclick = null;
                 
