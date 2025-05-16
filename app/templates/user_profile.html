@@ -66,6 +66,22 @@
             {% endif %}
         </div>
 
+        {% if user.role == 'organizer' %}
+            <!-- Блок созданных мероприятий организатора -->
+            <details class="events-section" open>
+                <summary>Мероприятия организатора</summary>
+                <div class="posts-container">
+                    {% for event in user.events if event.is_active %}
+                        {% with post=event %}
+                            {% include 'post.html' %}
+                        {% endwith %}
+                    {% else %}
+                        <p class="empty-message">Нет созданных мероприятий</p>
+                    {% endfor %}
+                </div>
+            </details>
+        {% endif %}
+
         {% if show_events and is_friend and not user.is_private %}
             <!-- Список запланированных мероприятий -->
             <details class="events-section">
@@ -95,7 +111,7 @@
                 </div>
             </details>
         {% else %}
-            <p class="warning">Информация о мероприятиях недоступна</p>
+            <p class="warning">Данные о мероприятиях, которые пользователь запланировал или посетил, недоступны.</p>
         {% endif %}
     </div>
 
