@@ -1,3 +1,5 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <div id="stats-popup" class="stats-popup" style="display: none">
     <div class="stats-content">
         <span class="close-stats" onclick="hideStats()">×</span>
@@ -28,6 +30,9 @@
                 <span class="stat-value" id="stat-recommend">0</span>
                 <span class="stat-label">Рекомендации</span>
             </div>
+        </div>
+        <div class="stats-chart">
+            <canvas id="viewsChart"></canvas>
         </div>
     </div>
 </div>

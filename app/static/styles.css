@@ -1770,3 +1770,15 @@ input:checked + .slider:before {
     content: "✓";
     font-weight: bold;
 }
+
+.stats-chart {
+    margin-top: 20px;
+    padding: 15px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+#viewsChart {
+    max-height: 300px;
+}

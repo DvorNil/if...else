@@ -5,7 +5,7 @@ const userMenu = document.getElementById('userMenu');
 // Глобальная переменная для хранения данных о текущем мероприятии
 let currentEventData = null;
 let currentStatsEventId = null;
-
+let chartInstance = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadPostStatusIcons();
@@ -1057,6 +1057,12 @@ function showEventStats(event, eventId) {
             recommendations: stats.recommendations ?? 0
         };
 
+        if (stats.views_data && Object.keys(stats.views_data).length > 0) {
+            renderViewsChart(stats.views_data);
+        } else {
+            destroyChart();
+        }
+
         // Обновление UI
         document.getElementById('stat-rating').textContent = 
             formattedStats.average_rating.toFixed(1);
@@ -1082,6 +1088,7 @@ function showEventStats(event, eventId) {
 
 function hideStats() {
     document.getElementById('stats-popup').style.display = 'none';
+    destroyChart();
     currentStatsEventId = null;
 }
 
@@ -1386,4 +1393,68 @@ function copyEventLink() {
     navigator.clipboard.writeText(link)
         .then(() => alert('Ссылка скопирована в буфер обмена!'))
         .catch(() => prompt('Скопируйте ссылку вручную:', link));
+}
+
+function destroyChart() {
+    if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+    }
+}
+
+
+function renderViewsChart(viewsData) {
+    destroyChart();
+    const ctx = document.getElementById('viewsChart').getContext('2d');
+    const dates = Object.keys(viewsData).sort();
+    const counts = dates.map(date => viewsData[date]);
+    Chart.defaults.color = '#888'; // Цвет текста по умолчанию
+    
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Кол-во просмотров в день',
+                data: counts,
+                borderColor: '#ff6200',
+                backgroundColor: 'rgba(255, 98, 0, 0.1)',
+                tension: 0.1,
+                pointBackgroundColor: '#ff6200',
+                pointBorderColor: '#fff',
+                pointHoverRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#fff'
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: '#333'
+                    },
+                    ticks: {
+                        color: '#888'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: '#333'
+                    },
+                    ticks: {
+                        color: '#888',
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
 }

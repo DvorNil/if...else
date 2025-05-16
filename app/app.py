@@ -1967,7 +1967,20 @@ def get_event_stats(event_id):
         if event.organizer_id != user.id and user.role not in ['moderator', 'admin']:
             return jsonify({"error": "Forbidden"}), 403
         
+
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        views_data = db.session.query(
+            func.date(EventView.last_viewed_at).label('date'),
+            func.count().label('views')
+        ).filter(
+            EventView.event_id == event_id
+        ).group_by('date').all()
+        
+        # Форматируем в словарь {дата: количество}
+        views_by_date = {str(row.date): row.views for row in views_data}
+
         stats = {
+            'views_data': views_by_date,
             'views': EventView.query.filter_by(event_id=event_id).count(),
             'planned': UserEventStatus.query.filter_by(event_id=event_id, status='planned').count(),
             'attended': UserEventStatus.query.filter_by(event_id=event_id, status='attended').count(),
@@ -1975,7 +1988,7 @@ def get_event_stats(event_id):
             'average_rating': event.average_rating,
             'ratings_count': event.ratings_count
         }
-        
+
         return jsonify(stats)
     
     except Exception as e:
