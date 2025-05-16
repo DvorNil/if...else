@@ -1964,7 +1964,7 @@ def get_event_stats(event_id):
         user = User.query.filter_by(username=session['username']).first()
         
         # Проверка прав доступа
-        if event.organizer_id != user.id:
+        if event.organizer_id != user.id and user.role not in ['moderator', 'admin']:
             return jsonify({"error": "Forbidden"}), 403
         
         stats = {
