@@ -1614,9 +1614,69 @@ input:checked + .slider:before {
     text-decoration: underline;
 }
 
-.share-btn {
-    background: rgba(255, 98, 0, 0.4) !important;
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    position: relative;
 }
+
+.share-btn {
+    background: linear-gradient(135deg, rgba(255, 138, 0, 0.6) 0%, rgba(255, 77, 0, 0.8) 100%) !important;
+    border: none !important;
+    padding: 8px 16px !important;
+    border-radius: 4px !important; /* Минимальное скругление */
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    color: white !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    margin-left: 15px !important;
+    white-space: nowrap !important; /* Запрет переноса текста */
+    height: 36px !important; /* Фиксированная высота */
+}
+
 .share-btn:hover {
-    background: #ff6200 !important;
+    background: linear-gradient(135deg, rgba(255, 123, 0, 0.9) 0%, rgba(255, 61, 0, 0.9) 100%) !important;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-1px) !important;
+}
+
+.share-btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.share-icon {
+    width: 16px !important;
+    height: 16px !important;
+    filter: brightness(0) invert(1);
+    transition: transform 0.2s ease;
+}
+
+.share-text {
+    font-size: 14px !important;
+    letter-spacing: 0.3px;
+}
+
+/* Адаптация для узких экранов */
+@media (max-width: 480px) {
+    .share-btn {
+        padding: 6px 12px !important;
+        gap: 6px !important;
+        height: 32px !important;
+    }
+    
+    .share-text {
+        font-size: 13px !important;
+    }
+    
+    .share-icon {
+        width: 14px !important;
+        height: 14px !important;
+    }
 }

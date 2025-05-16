@@ -12,15 +12,14 @@
         <div id="event-content">
             <span class="close-btn" onclick="hideModal()">×</span>
             <img id="modal-image" class="modal-image" src="" alt="Изображение мероприятия" style="cursor: pointer">
-
-            <button onclick="copyEventLink()" class="menu-btn share-btn" style="margin-bottom: 15px;">
-                Поделиться мероприятием
-            </button>
-            
             <div class="modal-details">
-                <h2 id="modal-title"></h2>
-                
-
+                <div class="modal-header">
+                    <h2 id="modal-title"></h2>
+                    <button onclick="copyEventLink()" class="share-btn">
+                        <img src="/static/images/share-icon.png" class="share-icon" alt="Поделиться">
+                        Поделиться
+                    </button>
+                </div>
                 <div class="modal-rating">
                     <strong>Рейтинг:</strong>
                     <span class="star" style="color: #ffa500;">★</span>
