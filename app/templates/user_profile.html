@@ -33,7 +33,7 @@
                     <button class="profile-action-btn subscribe-btn-profile" 
                         onclick="toggleSubscription({{ user.id }}, this)"
                         data-subscribed="{% if user in current_user.favorite_organizers %}true{% else %}false{% endif %}">
-                        {% if user in current_user.favorite_organizers %}✓ Подписан{% else %}Подписаться{% endif %}
+                        {% if user in current_user.favorite_organizers %}✓ Вы подписаны{% else %}Подписаться{% endif %}
                     </button>
                 {% endif %}
             {% endif %}
