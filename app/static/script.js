@@ -289,7 +289,9 @@ function showEventContent() {
     document.getElementById('modal-format').textContent = e.format === 'online' ? 'Онлайн' : 'Офлайн';
 
     // Организатор
-    document.getElementById('modal-organizer').textContent = e.organizerUsername || "Не указан";
+    const organizerLink = document.getElementById('modal-organizer');
+    organizerLink.href = `/profile/${e.organizerUsername}`;
+    organizerLink.textContent = e.organizerUsername || "Не указан";
 
     // Изображение
     const img = document.getElementById('modal-image');

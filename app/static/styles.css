@@ -1680,3 +1680,12 @@ input:checked + .slider:before {
         height: 14px !important;
     }
 }
+
+.organizer-link {
+        color: #ff6200 !important;
+        text-decoration: none !important;
+        cursor: pointer;
+    }
+.organizer-link:hover {
+    text-decoration: underline !important;
+}
