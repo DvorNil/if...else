@@ -486,7 +486,7 @@ def home():
 
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("50 per minute")
+#@limiter.limit("50 per minute")
 def login():
     if request.method == 'POST':
         ip_address = request.remote_addr

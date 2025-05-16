@@ -111,7 +111,7 @@
                                     <button class="menu-btn subscribe-btn ${isSubscribed ? 'subscribed' : ''}" 
                                             onclick="toggleSubscription(${org.id}, this, ${isSubscribed})"
                                             ${isSubscribed ? 'disabled' : ''}>
-                                        ${isSubscribed ? '✓ Подписано' : 'Подписаться'}
+                                        ${isSubscribed ? '✓ Вы подписаны' : 'Подписаться'}
                                     </button>
                                 </div>
                             `;
@@ -122,7 +122,7 @@
         });
 
         function toggleSubscription(organizerId, btn, isUnsubscribe = false) {
-            const organizerIdStr = organizerId.toString();
+            const organizerIdStr = organizerId.toString();  
             
             // Проверяем, не выполняется ли уже запрос для этого организатора
             if (subscriptionState.processing.has(organizerIdStr)) {
@@ -172,7 +172,7 @@
                         subscriptionState.subscribed.add(organizerIdStr);
                         
                         // Обновляем кнопку в результатах поиска
-                        btn.textContent = '✓ Подписано';
+                        btn.textContent = '✓ Вы подписаны';
                         btn.classList.add('subscribed');
                         btn.disabled = true;
                         

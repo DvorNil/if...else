@@ -1164,7 +1164,6 @@ function toggleSubscription(organizerId, btn, isUnsubscribe = false) {
                 const item = btn.closest('.friend-item');
                 item.style.opacity = '0';
                 setTimeout(() => item.remove(), 300);
-                
                 // Проверяем, остались ли подписки
                 if (!document.querySelector('#subscriptions-list .friend-item')) {
                     document.getElementById('subscriptions-list').innerHTML = 
@@ -1174,8 +1173,14 @@ function toggleSubscription(organizerId, btn, isUnsubscribe = false) {
                 // Обновляем UI для кнопки подписки
                 btn.textContent = '✓ Вы подписаны';
                 btn.style.background = '#4CAF50';
+                btn.style.color = 'white';
                 btn.onclick = null;
-                
+                if (window.location.pathname.startsWith('/profile') && data.action == "unsubscribed") {
+                    btn.textContent = 'Вы отписались';
+                    btn.style.background = '#ee3333';
+                    btn.style.color = 'white';
+                    btn.onclick = null;
+                }
                 // Можно добавить анимацию или обновить список
                 if (window.location.pathname === '/subscriptions') {
                     window.location.reload(); // Проще перезагрузить страницу
