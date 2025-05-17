@@ -114,6 +114,12 @@
                 <span></span>
             </div>
         <div class="menu-buttons">
+            <label class="menu-btn">
+                <input type="checkbox" id="nearbyToggle" 
+                    onchange="toggleNearbyFilter(this)"
+                    {% if nearby_filter_active %}checked{% endif %}>
+                Возле меня
+            </label>
             <span style="color: white; margin-right: 10px;">Сортировка:</span>
             <select class="menu-btn" id="sortSelector" onchange="applySorting(this.value)">
                 {% if session.username %}

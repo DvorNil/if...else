@@ -1458,3 +1458,30 @@ function renderViewsChart(viewsData) {
         }
     });
 }
+
+function toggleNearbyFilter(checkbox) {
+    if (checkbox.checked) {
+        if (!navigator.geolocation) {
+            alert("Геолокация не поддерживается вашим браузером");
+            checkbox.checked = false;
+            return;
+        }
+        
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('nearby', 
+                    `${position.coords.latitude},${position.coords.longitude}`);
+                window.location.href = url.toString();
+            },
+            error => {
+                alert("Не удалось получить ваше местоположение");
+                checkbox.checked = false;
+            }
+        );
+    } else {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('nearby');
+        window.location.href = url.toString();
+    }
+}

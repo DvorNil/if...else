@@ -28,6 +28,9 @@
                     alt="{{ post.title }}"
                     onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
                 <div class="post-content">
+                    {% if post.distance is not none %}
+                    <div class="distance-badge">{{ "%.1f"|format(post.distance) }} км от вас</div>
+                    {% endif %}
                     <h3>{{ post.title }}</h3>
                     <p>{{ post.description|truncate(100) }}</p>
                     <p class="rating">

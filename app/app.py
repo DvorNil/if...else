@@ -18,6 +18,7 @@ from io import BytesIO
 import base64
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from math import radians, sin, cos, sqrt, atan2
 
 app = Flask(__name__)
 app.secret_key = '6jujmgkxze4png8ch3xg8r3052a01ia'
@@ -59,6 +60,10 @@ ROLE_TRANSLATIONS = {
     'admin': 'Администратор',
     'moderator': 'Модератор'
 }
+
+@app.context_processor
+def inject_nearby_status():
+    return {'nearby_filter_active': 'nearby' in request.args}
 
 # Модель пользователя
 class User(db.Model):
@@ -103,8 +108,8 @@ class User(db.Model):
         received = [f.sender for f in self.received_requests if f.status == 'accepted']
         return list(set(sent + received))
     
-    def calculate_recommendation_scores(self):
-        """Рассчитывает баллы для рекомендаций с исправлениями"""
+    def calculate_recommendation_scores(self, user_coords=None):
+        """Рассчитывает баллы для рекомендаций"""
         events = Event.query.filter_by(is_active=True).options(joinedload(Event.tags)).all()
         scores = []
         
@@ -159,6 +164,16 @@ class User(db.Model):
                 else:
                     score += 5 + (math.log(views/10, 2) * 5)
 
+            # 7. Близость (только если есть координаты пользователя)
+            if user_coords and event.lat and event.lng:
+                distance = haversine(
+                    user_coords[0], user_coords[1],
+                    event.lat, event.lng
+                )
+                if distance <= 10:
+                    proximity_score = 50 * (1 - (distance / 10)) ** 2
+                    score += proximity_score
+
             scores.append((event, score))
         
         return sorted(scores, key=lambda x: x[1], reverse=True)
@@ -209,6 +224,14 @@ class Event(db.Model):
     @hybrid_property
     def views_count(self):
         return EventView.query.filter_by(event_id=self.id).count()
+    
+    @property
+    def distance(self):
+        return getattr(self, '_distance', None)
+    
+    @distance.setter
+    def distance(self, value):
+        self._distance = value
 
 # Связующая таблица для тегов и мероприятий
 class EventTag(db.Model):
@@ -438,6 +461,16 @@ def home():
     
     query = Event.query.filter_by(is_active=True)
     
+    user_coords = None
+    if 'nearby' in request.args:
+        try:
+            lat_str, lng_str = request.args['nearby'].split(',')
+            user_lat = float(lat_str)
+            user_lng = float(lng_str)
+            user_coords = (user_lat, user_lng)
+        except:
+            pass
+
     # Фильтры поиска и тегов
     if search_query:
         query = query.filter(
@@ -455,6 +488,13 @@ def home():
     if selected_sort == 'recommended' and 'username' in session:
         user = User.query.filter_by(username=session['username']).first()
         if user:
+            user_coords = None
+            if 'nearby' in request.args:
+                try:
+                    lat_str, lng_str = request.args['nearby'].split(',')
+                    user_coords = (float(lat_str), float(lng_str))
+                except:
+                    pass
             recommended = user.calculate_recommendation_scores()
             events = [e for e, _ in recommended]
         else:
@@ -475,10 +515,27 @@ def home():
         
         events = query.all()
     
+    filtered_events = []
+    for event in events:
+        if user_coords and event.lat and event.lng:
+            distance = haversine(user_coords[0], user_coords[1], event.lat, event.lng)
+            if distance <= 10:
+                event.distance = distance
+                filtered_events.append(event)
+        else:
+            event.distance = None
+            filtered_events.append(event)
+
+    if user_coords:
+        events = [e for e in filtered_events if e.distance is not None]
+    else:
+        events = filtered_events
+
     tags = Tag.query.all()
     
     return render_template('index.html', 
                          posts=events,
+                         nearby_filter_active='nearby' in request.args,
                          tags=tags,
                          search_query=search_query,
                          selected_tag=selected_tag,
@@ -2189,6 +2246,13 @@ def share_event(event_id):
     event = Event.query.get_or_404(event_id)
     return redirect(url_for('home', event_id=event_id))
 
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    dLat = radians(lat2 - lat1)
+    dLon = radians(lon2 - lon1)
+    a = sin(dLat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dLon/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    return R * c
 
 if __name__ == '__main__':
     app.run(debug=True)
