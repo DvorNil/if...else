@@ -147,7 +147,7 @@ class User(db.Model):
 
             # 4. Приватность
             if event.is_private:
-                score -= 100
+                score -= 1000
 
             # 5. Рекомендации друзей
             rec_count = Recommendation.query.filter(
@@ -171,7 +171,7 @@ class User(db.Model):
                     event.lat, event.lng
                 )
                 if distance <= 10:
-                    proximity_score = 50 * (1 - (distance / 10)) ** 2
+                    proximity_score = 100 * (1 - (distance / 10)) ** 2
                     score += proximity_score
 
             scores.append((event, score))
@@ -495,7 +495,7 @@ def home():
                     user_coords = (float(lat_str), float(lng_str))
                 except:
                     pass
-            recommended = user.calculate_recommendation_scores()
+            recommended = user.calculate_recommendation_scores(user_coords)
             events = [e for e, _ in recommended]
         else:
             events = query.order_by(Event.created_at.desc()).all()
@@ -543,7 +543,7 @@ def home():
 
 
 @app.route('/login', methods=['GET', 'POST'])
-#@limiter.limit("50 per minute")
+@limiter.limit("50 per minute")
 def login():
     if request.method == 'POST':
         ip_address = request.remote_addr
