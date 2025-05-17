@@ -1540,6 +1540,7 @@ def edit_organizer(organizer_id):
     organizer = User.query.get_or_404(organizer_id)
     
     if request.method == 'POST':
+        original_is_blocked = organizer.is_blocked
         action = request.form.get('action')
         
         if action == 'block':
@@ -1557,11 +1558,21 @@ def edit_organizer(organizer_id):
             
             organizer.is_blocked = True
             organizer.block_reason = reason
+            if not original_is_blocked:
+                duration_text = "Навсегда" if duration == 'permanent' else f"{duration} дней"
+                send_account_status_email(
+                    organizer,
+                    is_blocked=True,
+                    block_duration=duration_text,
+                    reason=reason
+                )
         
         elif action == 'unblock':
             organizer.is_blocked = False
             organizer.blocked_until = None
             organizer.block_reason = None
+            if original_is_blocked:
+                send_account_status_email(organizer, is_blocked=False)
         
         # Обновление остальных данных
         organizer.username = request.form.get('username', organizer.username)
@@ -1612,6 +1623,7 @@ def edit_user(user_id):
     
     if request.method == 'POST':
         # Обработка блокировки/разблокировки
+        original_is_blocked = target_user.is_blocked
         action = request.form.get('action')
         
         if action == 'block':
@@ -1629,11 +1641,22 @@ def edit_user(user_id):
             
             target_user.is_blocked = True
             target_user.block_reason = reason
+
+            if not original_is_blocked:
+                duration_text = "Навсегда" if duration == 'permanent' else f"{duration} дней"
+                send_account_status_email(
+                    target_user,
+                    is_blocked=True,
+                    block_duration=duration_text,
+                    reason=reason
+                )
         
         elif action == 'unblock':
             target_user.is_blocked = False
             target_user.blocked_until = None
             target_user.block_reason = None
+            if original_is_blocked:
+                send_account_status_email(target_user, is_blocked=False)
         
         # Обновление остальных данных
         target_user.username = request.form.get('username', target_user.username)
@@ -2319,6 +2342,23 @@ def haversine(lat1, lon1, lat2, lon2):
     a = sin(dLat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dLon/2)**2
     c = 2 * atan2(sqrt(a), sqrt(1-a))
     return R * c
+
+def send_account_status_email(user, is_blocked, block_duration=None, reason=None):
+    try:
+        subject = "Блокировка аккаунта" if is_blocked else "Разблокировка аккаунта"
+        msg = Message(
+            subject=f"EventHub: {subject}",
+            recipients=[user.email],
+            html=render_template(
+                'account_status_email.html',
+                is_blocked=is_blocked,
+                block_duration=block_duration,
+                reason=reason
+            )
+        )
+        mail.send(msg)
+    except Exception as e:
+        app.logger.error(f"Ошибка отправки email: {str(e)}")
 
 if __name__ == '__main__':
     app.run(debug=True)

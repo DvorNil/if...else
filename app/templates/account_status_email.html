@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Изменение статуса аккаунта</title>
+</head>
+<body style="font-family: Arial, sans-serif;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #ff6200;">Статус вашего аккаунта изменен</h2>
+        
+        {% if is_blocked %}
+            <p style="color: #ff4444; font-weight: bold;">Ваш аккаунт был заблокирован.</p>
+            {% if block_duration %}
+                <p>Срок блокировки: {{ block_duration }}</p>
+            {% else %}
+                <p>Блокировка бессрочная</p>
+            {% endif %}
+            {% if reason %}
+                <p>Причина: {{ reason }}</p>
+            {% endif %}
+            <p style="margin-top: 20px; color: #666;">
+                Если вы считаете это ошибкой, свяжитесь с поддержкой по почте tesamye.ifelse@gmail.com
+            </p>
+        {% else %}
+            <p style="color: #4CAF50; font-weight: bold;">Ваш аккаунт разблокирован!</p>
+            <p>Теперь вы можете снова войти в систему.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
