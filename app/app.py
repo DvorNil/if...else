@@ -61,10 +61,6 @@ ROLE_TRANSLATIONS = {
     'moderator': 'Модератор'
 }
 
-@app.context_processor
-def inject_nearby_status():
-    return {'nearby_filter_active': 'nearby' in request.args}
-
 # Модель пользователя
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -446,11 +442,9 @@ def make_session_permanent():
     session.permanent = True
 
 @app.context_processor
-def inject_user():
-    if 'username' in session:
-        user = User.query.filter_by(username=session['username']).first()
-        return {'current_user': user}
-    return {}
+def inject_nearby_status():
+    return {'nearby_filter_active': 'nearby' in request.args}
+
 
 # Главная страница
 @app.route('/', methods=['GET'])
