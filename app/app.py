@@ -78,6 +78,9 @@ class User(db.Model):
     comment = db.Column(db.Text, nullable=True)
     totp_secret = db.Column(db.String(32), nullable=True)
     is_2fa_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    is_blocked = db.Column(db.Boolean, default=False)
+    blocked_until = db.Column(db.DateTime, nullable=True)
+    block_reason = db.Column(db.Text, nullable=True)
     favorite_organizers = db.relationship(
         'User', 
         secondary='user_organizer',
@@ -559,6 +562,25 @@ def login():
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
         
+        # Проверка блокировки пользователя
+        if user and user.is_blocked and bcrypt.check_password_hash(user.password, password):
+            error_msg = "Аккаунт заблокирован"
+            if user.blocked_until:
+                if user.blocked_until > datetime.utcnow():
+                    error_msg += f" до {(user.blocked_until + timedelta(hours=3)).strftime('%d.%m.%Y %H:%M')}"
+                else:
+                    user.is_blocked = False  # Автоматическая разблокировка
+                    user.blocked_until = None
+                    user.block_reason = None
+                    db.session.commit()
+            else:
+                error_msg += " навсегда"
+                
+            if user.block_reason:
+                error_msg += f". Причина: {user.block_reason}"
+                
+            return render_template('login.html', error=error_msg)
+
         if user and bcrypt.check_password_hash(user.password, password):
             # Успешный вход - сбрасываем счетчик попыток
             attempt.attempts = 0
@@ -1518,7 +1540,30 @@ def edit_organizer(organizer_id):
     organizer = User.query.get_or_404(organizer_id)
     
     if request.method == 'POST':
-        # Обновление данных
+        action = request.form.get('action')
+        
+        if action == 'block':
+            # Проверка прав
+            if session['role'] == 'moderator' and organizer.role in ['moderator', 'admin']:
+                abort(403)
+                
+            duration = request.form.get('duration')
+            reason = request.form.get('reason')
+            
+            if duration == 'permanent':
+                organizer.blocked_until = None
+            else:
+                organizer.blocked_until = datetime.utcnow() + timedelta(days=int(duration))
+            
+            organizer.is_blocked = True
+            organizer.block_reason = reason
+        
+        elif action == 'unblock':
+            organizer.is_blocked = False
+            organizer.blocked_until = None
+            organizer.block_reason = None
+        
+        # Обновление остальных данных
         organizer.username = request.form.get('username', organizer.username)
         organizer.occupation = request.form.get('occupation', organizer.occupation)
         organizer.description = request.form.get('description', organizer.description)
@@ -1566,12 +1611,39 @@ def edit_user(user_id):
         abort(403)
     
     if request.method == 'POST':
+        # Обработка блокировки/разблокировки
+        action = request.form.get('action')
+        
+        if action == 'block':
+            # Проверка прав на блокировку
+            if current_user.role == 'moderator' and target_user.role in ['moderator', 'admin']:
+                abort(403)
+                
+            duration = request.form.get('duration')
+            reason = request.form.get('reason')
+            
+            if duration == 'permanent':
+                target_user.blocked_until = None
+            else:
+                target_user.blocked_until = datetime.utcnow() + timedelta(days=int(duration))
+            
+            target_user.is_blocked = True
+            target_user.block_reason = reason
+        
+        elif action == 'unblock':
+            target_user.is_blocked = False
+            target_user.blocked_until = None
+            target_user.block_reason = None
+        
+        # Обновление остальных данных
         target_user.username = request.form.get('username', target_user.username)
         target_user.description = request.form.get('description', target_user.description)
+        
         db.session.commit()
         return redirect(url_for('all_users'))
     
     return render_template('edit_user.html', user=target_user)
+
 
 @app.route('/update_avatar', methods=['POST'])
 def update_avatar():

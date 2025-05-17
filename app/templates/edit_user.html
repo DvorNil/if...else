@@ -44,6 +44,42 @@
             {% endif %}
 
             <button type="submit" class="save-btn">Сохранить</button>
+            {% if session.role in ['admin', 'moderator'] %}
+            <div class="block-section">
+                <h3>Управление блокировкой</h3>
+                {% if user.is_blocked %}
+                    <p>Статус: Заблокирован 
+                        {% if user.blocked_until %} 
+                            до {{ user.blocked_until.strftime('%d.%m.%Y %H:%M') }}
+                        {% else %}
+                            навсегда
+                        {% endif %}
+                    </p>
+                    <p>Причина: {{ user.block_reason }}</p>
+                    <form method="POST">
+                        <input type="hidden" name="action" value="unblock">
+                        <button type="submit" class="save-btn">Разблокировать</button>
+                    </form>
+                {% else %}
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="duration">Срок блокировки:</label>
+                            <select id="duration" name="duration" class="form-input" required>
+                                <option value="7">7 дней</option>
+                                <option value="30">30 дней</option>
+                                <option value="permanent">Навсегда</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="reason">Причина:</label>
+                            <textarea id="reason" name="reason" class="form-input" rows="2"></textarea>
+                        </div>
+                        <input type="hidden" name="action" value="block">
+                        <button type="submit" class="save-btn">Заблокировать</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
         </form>
     </div>
 </body>

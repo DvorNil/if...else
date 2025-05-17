@@ -846,6 +846,7 @@ input:checked + .slider:before {
     padding: 25px;
     background: #1a1a1a;
     border-radius: 10px;
+    font-size: 1.2em;
 }
 
 .edit-organizer-form {
@@ -858,6 +859,10 @@ input:checked + .slider:before {
     margin-bottom: 8px;
     color: #ff6200;
     font-weight: bold;
+}
+
+.form-group textarea {
+    font-size: 1.05em;
 }
 
 .form-input {
@@ -1793,4 +1798,53 @@ input:checked + .slider:before {
     border-radius: 12px;
     font-size: 1.1em;
     z-index: 2;
+}
+
+.block-section {
+    margin-top: 30px;
+    padding: 25px;
+    border-radius: 10px;
+    background: #1f1f1f;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.block-section h3 {
+    color: #ff6200;
+    margin: 0 0 20px 0;
+    font-size: 1.3em;
+    border-bottom: 1px solid #ff620050;
+    padding-bottom: 12px;
+}
+
+.block-section form {
+    display: grid;
+    gap: 18px;
+}
+
+.block-section .form-group {
+    margin-bottom: 8px;
+}
+
+.block-section .save-btn {
+    margin-top: 10px;
+    background: #ff6200;
+    transition: all 0.3s ease;
+    width: auto;
+    padding: 12px 30px;
+}
+
+.block-section .save-btn:hover {
+    background: #ff4500;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255,98,0,0.2);
+}
+
+.block-section p[status] {
+    color: #ccc;
+    font-size: 0.95em;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: #2a2a2a;
+    border-radius: 6px;
 }
