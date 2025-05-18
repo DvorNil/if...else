@@ -1848,3 +1848,27 @@ input:checked + .slider:before {
     background: #2a2a2a;
     border-radius: 6px;
 }
+
+.new-event-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #ff4444;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    z-index: 10;
+}
+
+.subscription-actions .new-events-badge {
+    margin-right: 10px;
+}
+
+.new-event-badge {
+    transition: opacity 0.3s ease;
+}
+
+.new-event-badge.removing {
+    opacity: 0;
+}

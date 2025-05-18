@@ -88,6 +88,9 @@ class User(db.Model):
         secondaryjoin='UserOrganizer.organizer_id == User.id',
         backref=db.backref('followers', lazy='dynamic')
     )
+    @property
+    def unread_event_ids(self):
+        return [n.event_id for n in self.notifications if not n.is_read]
     
     favorite_tags = db.relationship(
         'Tag',
@@ -329,6 +332,19 @@ class Comment(db.Model):
     
     user = db.relationship('User', backref='comments')
     event = db.relationship('Event', backref='comments')
+
+# Модель для уведомлений о новых мероприятиях
+class SubscriptionNotification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    organizer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', foreign_keys=[user_id], backref='notifications')
+    organizer = db.relationship('User', foreign_keys=[organizer_id])
+    event = db.relationship('Event')
 
 # Создание таблиц и добавление начальных данных
 with app.app_context():
@@ -754,6 +770,17 @@ def add_event():
             tag = Tag.query.get(tag_id)
             if tag:
                 db.session.add(EventTag(event_id=event.id, tag_id=tag.id))
+
+        db.session.add(event)
+        db.session.flush()
+        for follower in user.followers:
+            notification = SubscriptionNotification(
+                user_id=follower.id,
+                organizer_id=user.id,
+                event_id=event.id
+            )
+            db.session.add(notification)
+        
         db.session.commit()
         return redirect(url_for('home'))
     
@@ -2310,7 +2337,16 @@ def check_auth():
 def get_event_data():
     event_id = request.args.get('event_id')
     event = Event.query.get_or_404(event_id)
+    user = User.query.filter_by(username=session.get('username')).first()
     
+    is_new = False
+    if user:
+        is_new = SubscriptionNotification.query.filter_by(
+            user_id=user.id,
+            event_id=event.id,
+            is_read=False
+        ).first() is not None
+
     return jsonify({
         'eventId': event.id,
         'title': event.title,
@@ -2359,6 +2395,80 @@ def send_account_status_email(user, is_blocked, block_duration=None, reason=None
         mail.send(msg)
     except Exception as e:
         app.logger.error(f"Ошибка отправки email: {str(e)}")
+
+@app.route('/get_unread_notifications_count')
+def get_unread_notifications_count():
+    if 'username' not in session:
+        return jsonify({"count": 0})
+    
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return jsonify({"count": 0})
+    
+    count = SubscriptionNotification.query.filter_by(
+        user_id=user.id,
+        is_read=False
+    ).count()
+    
+    return jsonify({"count": count})
+
+@app.route('/mark_notifications_as_read', methods=['POST'])
+def mark_notifications_as_read():
+    if 'username' not in session:
+        return jsonify({"success": False})
+    
+    data = request.get_json()
+    organizer_id = data.get('organizer_id')
+    
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return jsonify({"success": False})
+    
+    # Помечаем все уведомления от этого организатора как прочитанные
+    SubscriptionNotification.query.filter_by(
+        user_id=user.id,
+        organizer_id=organizer_id,
+        is_read=False
+    ).update({"is_read": True})
+    
+    db.session.commit()
+    return jsonify({"success": True})
+
+@app.route('/get_organizer_unread_count/<int:organizer_id>')
+def get_organizer_unread_count(organizer_id):
+    if 'username' not in session:
+        return jsonify({"count": 0})
+    
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return jsonify({"count": 0})
+    
+    count = SubscriptionNotification.query.filter_by(
+        user_id=user.id,
+        organizer_id=organizer_id,
+        is_read=False
+    ).count()
+    
+    return jsonify({"count": count})
+
+@app.route('/mark_event_as_read/<int:event_id>', methods=['POST'])
+def mark_event_as_read(event_id):
+    if 'username' not in session:
+        return jsonify({"success": False})
+    
+    user = User.query.filter_by(username=session['username']).first()
+    if not user:
+        return jsonify({"success": False})
+    
+    # Помечаем уведомление о конкретном мероприятии как прочитанное
+    SubscriptionNotification.query.filter_by(
+        user_id=user.id,
+        event_id=event_id,
+        is_read=False
+    ).update({"is_read": True})
+    
+    db.session.commit()
+    return jsonify({"success": True})
 
 if __name__ == '__main__':
     app.run(debug=True)

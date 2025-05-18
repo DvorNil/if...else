@@ -47,6 +47,7 @@
                         <a href="{{ url_for('subscriptions') }}" class="sidebar-item">
                             <img src="{{ url_for('static', filename='images/subscribe-icon.png') }}" class="sidebar-icon">
                             <span>Подписки</span>
+                            <span class="sidebar-badge" id="subscriptions-badge" style="display: none;"></span>
                         </a>
                         {% if session.role in ['moderator', 'admin'] %}
                             <a href="{{ url_for('validation') }}" class="sidebar-item">
@@ -162,7 +163,9 @@
             </div>
         {% endif %}
         {% for post in posts %}
-             {% include 'post.html' %}
+            {% with event=post %}
+                {% include 'post.html' %}
+            {% endwith %}
         {% endfor %}
     </div>
 

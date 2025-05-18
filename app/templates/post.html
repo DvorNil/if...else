@@ -1,5 +1,6 @@
 <div class="post" 
                  data-event-id="{{ post.id }}"
+                 data-organizer-id="{{ post.organizer.id }}"
                  data-title="{{ post.title | escape }}"
                  data-description="{{ post.description | escape }}"
                  data-location-name="{{ post.location_name | escape if post.location_name else '' }}"
@@ -19,6 +20,9 @@
             {% if post.is_private %}
                 <div class="private-badge">Приватное</div>
             {% endif %}
+            {% if current_user and post.id in current_user.unread_event_ids %}
+                <span class="new-event-badge">Новое</span>
+            {% endif %}
             <img class="post-status-icon" 
                 src="/static/images/nullMini.png" 
                 alt="Status" 
@@ -29,7 +33,7 @@
                     onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/no-image.jpg') }}'">
                 <div class="post-content">
                     {% if post.distance is not none %}
-                    <div class="distance-badge">{{ "%.1f"|format(post.distance) }} км от вас</div>
+                        <div class="distance-badge">{{ "%.1f"|format(post.distance) }} км от вас</div>
                     {% endif %}
                     <h3>{{ post.title }}</h3>
                     <p>{{ post.description|truncate(100) }}</p>

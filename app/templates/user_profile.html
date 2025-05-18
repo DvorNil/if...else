@@ -72,7 +72,7 @@
                 <summary>Мероприятия организатора</summary>
                 <div class="posts-container">
                     {% for event in user.events if event.is_active %}
-                        {% with post=event %}
+                        {% with post=event %}  <!-- Передаем event как post -->
                             {% include 'post.html' %}
                         {% endwith %}
                     {% else %}

@@ -47,6 +47,8 @@ function handlePostClick(element) {
     if (event.target.closest('.stats-btn')) return;
     const eventData = {
         eventId: element.dataset.eventId,
+        isNew: element.querySelector('.new-event-badge') !== null,
+        organizerId: element.dataset.organizerId,
         title: element.dataset.title,
         description: element.dataset.description,
         locationName: element.dataset.locationName,
@@ -87,6 +89,22 @@ function showModal(eventData) {
     if (!statusIcon) {
         console.error('Элемент с id="status-icon" не найден!');
         return;
+    }
+
+    if (eventData.isNew) {
+        fetch(`/mark_event_as_read/${eventData.eventId}`, {
+            method: 'POST'
+        }).then(() => {
+            // Удаляем значок "Новое" со всех постов этого мероприятия
+            document.querySelectorAll(`.post[data-event-id="${eventData.eventId}"] .new-event-badge`)
+                .forEach(badge => badge.remove());
+            
+            // Обновляем счетчики
+            checkNotifications();
+            if (eventData.organizerId) {
+                checkNewEvents(eventData.organizerId);
+            }
+        });
     }
 
     fetch(`/get_event_status?event_id=${eventId}`)
@@ -1484,4 +1502,36 @@ function toggleNearbyFilter(checkbox) {
         url.searchParams.delete('nearby');
         window.location.href = url.toString();
     }
+}
+
+// Функция для проверки новых уведомлений
+function checkNotifications() {
+    if (!document.getElementById('subscriptions-badge')) return;
+    
+    fetch('/get_unread_notifications_count')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.getElementById('subscriptions-badge');
+            if (data.count > 0) {
+                badge.textContent = data.count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+}
+
+// Проверяем уведомления при загрузке страницы и каждые 5 минут
+document.addEventListener('DOMContentLoaded', () => {
+    checkNotifications();
+    setInterval(checkNotifications, 300000); // 5 минут
+});
+
+// Функция для пометки уведомлений как прочитанных
+function markNotificationsAsRead(organizerId) {
+    fetch('/mark_notifications_as_read', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({organizer_id: organizerId})
+    });
 }

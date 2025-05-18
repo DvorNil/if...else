@@ -47,12 +47,15 @@
                 {% for organizer in user.favorite_organizers %}
                     <div class="friend-item" data-organizer-id="{{ organizer.id }}">
                         <img src="{{ url_for('static', filename=organizer.avatar_url) if organizer.avatar_url else url_for('static', filename='images/default-avatar.png') }}" 
-                             class="user-avatar"
-                             alt="{{ organizer.username }}">
+                            class="user-avatar"
+                            alt="{{ organizer.username }}">
                         <a href="{{ url_for('user_profile', username=organizer.username) }}" style="color: white; text-decoration: none;">
                             {{ organizer.username }}
                         </a>
                         <div class="subscription-actions">
+                            <span class="new-events-badge" 
+                                id="new-events-{{ organizer.id }}"
+                                style="display: none; background: #ff4444; color: white; padding: 2px 6px; border-radius: 10px; margin-right: 10px;"></span>
                             <span style="color: #ff6200; margin-right: 10px;">Подписчиков: {{ organizer.followers.count() }}</span>
                             <button class="menu-btn unsubscribe-btn" 
                                     onclick="toggleSubscription({{ organizer.id }}, this, true)">
@@ -69,6 +72,36 @@
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
+        // Проверяем новые мероприятия при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            const subscriptions = document.querySelectorAll('.friend-item[data-organizer-id]');
+            subscriptions.forEach(item => {
+                const organizerId = item.dataset.organizerId;
+                checkNewEvents(organizerId);
+            });
+        });
+
+        // Функция для проверки новых мероприятий организатора
+        function checkNewEvents(organizerId) {
+            fetch(`/get_organizer_unread_count/${organizerId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById(`new-events-${organizerId}`);
+                    if (data.count > 0) {
+                        badge.textContent = data.count;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                });
+        }
+
+        // Помечаем уведомления как прочитанные при переходе в профиль
+        function goToOrganizerProfile(organizerId) {
+            markNotificationsAsRead(organizerId);
+            window.location.href = `/profile/${organizerId}`;
+        }
+
         // Храним состояние подписок для предотвращения дублирования
         const subscriptionState = {
             processing: new Set(),
