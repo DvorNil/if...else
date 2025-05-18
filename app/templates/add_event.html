@@ -25,10 +25,186 @@
         .map-coordinates input {
             width: 100%;
         }
+        .auth-container {
+            background: #2a2a2a;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            margin: 50px auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .auth-container h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ff6200;
+        }
+        .auth-container label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+        .auth-container .search-input {
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .auth-container .menu-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
+        .tag-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .tag-option {
+            padding: 8px 12px;
+            background: #333;
+            border-radius: 20px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            border: 1px solid #444;
+        }
+        .tag-option:hover {
+            background: #444;
+        }
+        .tag-option.selected {
+            background: #ff6200;
+            border-color: #ff6200;
+            color: white;
+        }
+        .file-input-container {
+            position: relative;
+            margin: 15px 0;
+        }
+        .file-input-label {
+            display: block;
+            padding: 10px;
+            background: #333;
+            border: 1px dashed #ff6200;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .file-input-label:hover {
+            background: #3a3a3a;
+        }
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 0.1px;
+            height: 0.1px;
+        }
+        .file-name {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
     </style>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
+    </div>
+    <div class="auth-container">
+        <h2>Добавить мероприятие</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <label>Название:</label>
+            <input class="search-input" type="text" name="title" required>
+            
+            <label>Описание:</label>
+            <textarea class="search-input" name="description" required style="min-height: 100px;"></textarea>
+            
+            <label>Формат:</label>
+            <select class="search-input" name="format" required onchange="toggleFormatFields(this.value)">
+                <option value="online">Онлайн</option>
+                <option value="offline">Офлайн</option>
+            </select>
+            
+            <!-- Поля для онлайн мероприятий -->
+            <div class="online-field" style="display: none;">
+                <label>Информация для участников (ссылка, инструкции):</label>
+                <textarea class="search-input" name="online_info" style="min-height: 100px;"></textarea>
+            </div>
+            
+            <!-- Поля для офлайн мероприятий -->
+            <div class="offline-field">
+                <label>Название места проведения:</label>
+                <input class="search-input" type="text" name="location_name">
+                
+                <label>Адрес места проведения:</label>
+                <input class="search-input" type="text" name="location_address">
+                
+                <label>Выберите место на карте:</label>
+                <div id="map-container">
+                    <div id="map"></div>
+                </div>
+                <div class="map-coordinates">
+                    <input class="search-input" type="number" step="any" name="lat" placeholder="Широта" min="-90" max="90">
+                    <input class="search-input" type="number" step="any" name="lng" placeholder="Долгота" min="-180" max="180">
+                </div>
+            </div>
+            
+            <label>Дата и время:</label>
+            <input class="search-input" 
+                   type="datetime-local" 
+                   name="date_time" 
+                   required
+                   title="Дата должна быть между сегодня и 5 годами вперед">
+            
+            <label>Продолжительность (в минутах):</label>
+            <input class="search-input" 
+                   type="number" 
+                   name="duration" 
+                   required
+                   min="1"
+                   title="Продолжительность должна быть не менее 1 минуты">
+            
+            <label>Тип мероприятия:</label>
+            <input class="search-input" type="text" name="event_type" required>
+            
+            <label>Приватность:</label>
+            <select class="search-input" name="is_private" onchange="togglePasswordField(this.value)">
+                <option value="false">Публичное</option>
+                <option value="true">Приватное</option>
+            </select>
+            
+            <div id="password-field" style="display: none;">
+                <label>Пароль для доступа:</label>
+                <input class="search-input" type="password" name="password">
+            </div>
+            
+            <label>Теги:</label>
+            <div class="tag-selector" id="tag-selector">
+                {% for tag in tags %}
+                    <div class="tag-option" data-tag-id="{{ tag.id }}">{{ tag.name }}</div>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="tags" id="selected-tags">
+            
+            <label>Изображение:</label>
+            <div class="file-input-container">
+                <label class="file-input-label" for="image-upload">
+                    Выберите файл...
+                    <div class="file-name" id="file-name">Файл не выбран</div>
+                </label>
+                <input class="file-input" type="file" name="image" id="image-upload" accept="image/*">
+            </div>
+            
+            <button type="submit" class="menu-btn">Добавить</button>
+        </form>
+    </div>
+    
     <script>
         let map;
         let marker;
+        let selectedTags = new Set();
         
         window.onload = function() {
             // Инициализация карты
@@ -50,12 +226,33 @@
             dateTimeField.min = toISOLocal(now);
             dateTimeField.max = toISOLocal(maxDate);
             
-            // Переключение между онлайн/оффлайн
+            // Переключение между онлайн/офлайн
             const formatSelect = document.querySelector('select[name="format"]');
             toggleFormatFields(formatSelect.value);
             
             formatSelect.addEventListener('change', function() {
                 toggleFormatFields(this.value);
+            });
+
+            // Обработчик выбора файла
+            document.getElementById('image-upload').addEventListener('change', function(e) {
+                const fileName = e.target.files[0] ? e.target.files[0].name : 'Файл не выбран';
+                document.getElementById('file-name').textContent = fileName;
+            });
+
+            // Обработчик выбора тегов
+            document.querySelectorAll('.tag-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const tagId = this.dataset.tagId;
+                    if (selectedTags.has(tagId)) {
+                        selectedTags.delete(tagId);
+                        this.classList.remove('selected');
+                    } else {
+                        selectedTags.add(tagId);
+                        this.classList.add('selected');
+                    }
+                    updateSelectedTagsInput();
+                });
             });
         };
         
@@ -91,91 +288,14 @@
                 onlineField.style.display = 'none';
             }
         }
-    </script>
-</head>
-<body>
-    <div class="header">
-        <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
-    </div>
-    <div class="posts-container">
-        <h2>Добавить мероприятие</h2>
-        <form method="POST" enctype="multipart/form-data">
-            <label>Название:</label><br>
-            <input class="search-input" type="text" name="title" required><br><br>
-            <label>Описание:</label><br>
-            <textarea class="search-input" name="description" required></textarea><br><br>
-            <label>Формат:</label><br>
-            <select class="menu-btn" name="format" required onchange="toggleFormatFields(this.value)">
-                <option value="online">Онлайн</option>
-                <option value="offline">Офлайн</option>
-            </select><br><br>
-            
-            <!-- Поля для онлайн мероприятий -->
-            <div class="online-field" style="display: none;">
-                <label>Информация для участников (ссылка, инструкции):</label><br>
-                <textarea class="search-input" name="online_info"></textarea><br><br>
-            </div>
-            
-            <!-- Поля для офлайн мероприятий -->
-            <div class="offline-field">
-                <label>Название места проведения:</label><br>
-                <input class="search-input" type="text" name="location_name"><br><br>
-                <label>Адрес места проведения:</label><br>
-                <input class="search-input" type="text" name="location_address"><br><br>
-                
-                <label>Выберите место на карте:</label>
-                <div id="map-container">
-                    <div id="map"></div>
-                </div>
-                <div class="map-coordinates">
-                    <input class="search-input" type="number" step="any" name="lat" placeholder="Широта" min="-90" max="90">
-                    <input class="search-input" type="number" step="any" name="lng" placeholder="Долгота" min="-180" max="180">
-                </div>
-            </div>
-            
-            <label>Дата и время:</label><br>
-            <input class="search-input" 
-                   type="datetime-local" 
-                   name="date_time" 
-                   required
-                   title="Дата должна быть между сегодня и 5 годами вперед"><br><br>
-            <label>Продолжительность (в минутах):</label><br>
-            <input class="search-input" 
-                   type="number" 
-                   name="duration" 
-                   required
-                   min="1"
-                   title="Продолжительность должна быть не менее 1 минуты"><br><br>
-            <label>Тип мероприятия:</label><br>
-            <input class="search-input" type="text" name="event_type" required><br><br>
-            
-            <label>Приватность:</label><br>
-            <select class="menu-btn" name="is_private" onchange="togglePasswordField(this.value)">
-                <option value="false">Публичное</option>
-                <option value="true">Приватное</option>
-            </select><br><br>
-            
-            <div id="password-field" style="display: none;">
-                <label>Пароль для доступа:</label><br>
-                <input class="search-input" type="password" name="password"><br><br>
-            </div>
-            
-            <label>Теги:</label><br>
-            <select class="menu-btn" name="tags" multiple>
-                {% for tag in tags %}
-                    <option value="{{ tag.id }}">{{ tag.name }}</option>
-                {% endfor %}
-            </select><br><br>
-            <label>Изображение:</label><br>
-            <input type="file" name="image" accept="image/*"><br><br>
-            <button type="submit" class="menu-btn">Добавить</button>
-        </form>
-    </div>
-    
-    <script>
+
         function togglePasswordField(value) {
             const passwordField = document.getElementById('password-field');
             passwordField.style.display = value === 'true' ? 'block' : 'none';
+        }
+
+        function updateSelectedTagsInput() {
+            document.getElementById('selected-tags').value = Array.from(selectedTags).join(',');
         }
     </script>
 </body>
