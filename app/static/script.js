@@ -1302,7 +1302,7 @@ function loadComments(eventId) {
                 <div class="comment-item" data-comment-id="${comment.id}">
                     <div class="comment-header">
                         <img src="${comment.avatar}" class="comment-avatar" 
-                            onerror="this.src='/static/images/default_avatar.png'">
+                            onerror="this.src='/static/images/default-avatar.png'">
                         <div class="comment-meta">
                             <a href="/profile/${comment.username}" class="comment-author-link">
                                 ${comment.username}
