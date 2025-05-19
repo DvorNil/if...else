@@ -209,6 +209,7 @@
         window.onload = function() {
             // Инициализация карты
             initMap();
+            updateSelectedTagsInput();
             
             // Ограничения для даты
             const dateTimeField = document.querySelector('input[type="datetime-local"]');
@@ -295,8 +296,11 @@
         }
 
         function updateSelectedTagsInput() {
-            document.getElementById('selected-tags').value = Array.from(selectedTags).join(',');
+            const selectedTagsInput = document.getElementById('selected-tags');
+            selectedTagsInput.value = Array.from(selectedTags).join(',');
         }
+
+
     </script>
 </body>
 </html>

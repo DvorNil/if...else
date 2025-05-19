@@ -732,7 +732,8 @@ def add_event():
         lat = float(request.form.get('lat', 0)) if format_type == 'offline' else None
         lng = float(request.form.get('lng', 0)) if format_type == 'offline' else None
         event_type = request.form.get('event_type')
-        selected_tags = request.form.getlist('tags')
+        selected_tags = request.form.get('tags', '').split(',')
+        selected_tags = [tag_id for tag_id in selected_tags if tag_id]
         is_private = request.form.get('is_private') == 'true'
         password = request.form.get('password') if is_private else None
         image_url = None
@@ -1111,7 +1112,8 @@ def edit_event(event_id):
             
             # Обновление тегов
             EventTag.query.filter_by(event_id=event.id).delete()
-            selected_tags = request.form.getlist('tags')
+            selected_tags = request.form.get('tags', '').split(',')
+            selected_tags = [tag_id for tag_id in selected_tags if tag_id]
             for tag_id in selected_tags:
                 tag = Tag.query.get(tag_id)
                 if tag:
