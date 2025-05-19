@@ -511,6 +511,16 @@ def home():
                     pass
             recommended = user.calculate_recommendation_scores(user_coords)
             events = [e for e, _ in recommended]
+            # Применяем фильтры поиска и тегов к рекомендованным событиям
+            if search_query:
+                events = [e for e in events 
+                        if search_query.lower() in e.title.lower() 
+                        or search_query.lower() in e.description.lower()
+                        or any(search_query.lower() in tag.name.lower() for tag in e.tags)]
+            
+            if selected_tag:
+                events = [e for e in events 
+                        if any(tag.name == selected_tag for tag in e.tags)]
         else:
             events = query.order_by(Event.created_at.desc()).all()
     else:
