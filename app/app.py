@@ -2360,7 +2360,6 @@ def get_event_data():
             event_id=event.id,
             is_read=False
         ).first() is not None
-
     return jsonify({
         'eventId': event.id,
         'title': event.title,

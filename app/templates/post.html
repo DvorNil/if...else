@@ -16,6 +16,7 @@
                  data-date-time="{{ post.date_time.strftime('%Y-%m-%dT%H:%M:%S') }}" 
                  data-duration="{{ post.duration }}"
                  data-organizer-username="{{ post.organizer.username }}"
+                 data-personalities="{{ post.personalities | tojson | forceescape }}"
                  onclick="handlePostClick(this)">
             {% if post.is_private %}
                 <div class="private-badge">Приватное</div>

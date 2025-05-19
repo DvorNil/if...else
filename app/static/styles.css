@@ -1872,3 +1872,72 @@ input:checked + .slider:before {
 .new-event-badge.removing {
     opacity: 0;
 }
+
+/* Стили для раздела "Приглашённые личности" в модальном окне */
+/* Стили для раздела с личностями */
+#personalities-section {
+    margin: 20px 0;
+    padding: 15px 0;
+}
+
+#personalities-section > p {
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    color: #ff6200;
+}
+
+#modal-personalities-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Базовый стиль для всех элементов */
+#modal-personalities-list > div {
+    padding: 10px 15px;
+    background: rgba(255,98,0,0.1);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    font-size: 0.95em;
+}
+
+/* Стиль для ссылок */
+#modal-personalities-list a {
+    color: #ff914d;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#modal-personalities-list a:hover {
+    color: #ff6200;
+    text-decoration: underline;
+}
+
+/* Иконка внешней ссылки */
+#modal-personalities-list a::after {
+    content: "↗";
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+/* Ховер-эффекты для контейнеров */
+#modal-personalities-list > div:hover {
+    background: rgba(255,98,0,0.15);
+    border-color: rgba(255,98,0,0.3);
+    transform: translateY(-2px);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    #modal-personalities-list {
+        gap: 8px;
+    }
+    
+    #modal-personalities-list > div {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+}

@@ -63,7 +63,8 @@ function handlePostClick(element) {
         onlineInfo: element.dataset.onlineInfo,
         dateTime: element.dataset.dateTime, 
         duration: parseInt(element.dataset.duration) || 0,
-        organizerUsername: element.dataset.organizerUsername
+        organizerUsername: element.dataset.organizerUsername,
+        personalities: element.dataset.personalities
     };
 
     showModal(eventData);
@@ -322,11 +323,11 @@ function showEventContent() {
         e.stopPropagation();
         showImageModal(this.src);
     });
-
     // Отображение приглашенных личностей
     const personalitiesList = document.getElementById('modal-personalities-list');
     if (e.personalities && e.personalities.length > 0) {
-        personalitiesList.innerHTML = e.personalities.map(person => {
+        personalitiesArray = JSON.parse(e.personalities || '[]')
+        personalitiesList.innerHTML = personalitiesArray.map(person => {
             if (person.link) {
                 return `<div><a href="${person.link}" target="_blank">${person.name}</a></div>`;
             } else {
