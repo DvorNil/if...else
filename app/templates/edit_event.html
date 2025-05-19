@@ -25,10 +25,229 @@
         .map-coordinates input {
             width: 100%;
         }
+        .tag-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .tag-option {
+            padding: 8px 12px;
+            background: #333;
+            border-radius: 20px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            border: 1px solid #444;
+        }
+        .tag-option:hover {
+            background: #444;
+        }
+        .tag-option.selected {
+            background: #ff6200;
+            border-color: #ff6200;
+            color: white;
+        }
+        .auth-container {
+            background: #2a2a2a;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            margin: 50px auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .auth-container h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ff6200;
+        }
+        .auth-container label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+        .auth-container .search-input {
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .auth-container .menu-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
+        .file-input-container {
+            position: relative;
+            margin: 15px 0;
+        }
+        .file-input-label {
+            display: block;
+            padding: 10px;
+            background: #333;
+            border: 1px dashed #ff6200;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .file-input-label:hover {
+            background: #3a3a3a;
+        }
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 0.1px;
+            height: 0.1px;
+        }
+        .file-name {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+        /* Стили для приглашённых личностей */
+        .personality-field {
+            margin-bottom: 10px;
+        }
     </style>
+</head>
+<body>
+    <div class="header">
+        <a href="{{ url_for('my_events') }}" class="menu-btn">Назад к моим мероприятиям</a>
+    </div>
+    <div class="auth-container">
+        <h2>Редактировать мероприятие</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <!-- Основные поля -->
+            <label>Название:</label>
+            <input class="search-input" type="text" name="title" value="{{ event.title }}" required>
+            
+            <label>Описание:</label>
+            <textarea class="search-input" name="description" required style="min-height: 100px;">{{ event.description }}</textarea>
+            
+            <label>Формат:</label>
+            <select class="search-input" name="format" required>
+                <option value="online" {% if event.format == 'online' %}selected{% endif %}>Онлайн</option>
+                <option value="offline" {% if event.format == 'offline' %}selected{% endif %}>Офлайн</option>
+            </select>
+            
+            <!-- Онлайн информация -->
+            <div class="online-field" style="display: {% if event.format == 'online' %}block{% else %}none{% endif %};">
+                <label>Информация для подключения:</label>
+                <textarea class="search-input" name="online_info" style="min-height: 100px;">{{ event.online_info or '' }}</textarea>
+            </div>
+            
+            <!-- Офлайн информация -->
+            <div class="offline-field" style="display: {% if event.format == 'offline' %}block{% else %}none{% endif %};">
+                <label>Название места проведения:</label>
+                <input class="search-input" type="text" name="location_name" value="{{ event.location_name or '' }}">
+                
+                <label>Адрес места проведения:</label>
+                <input class="search-input" type="text" name="location_address" value="{{ event.location_address or '' }}">
+                
+                <label>Выберите место на карте:</label>
+                <div id="map-container">
+                    <div id="map"></div>
+                </div>
+                <div class="map-coordinates">
+                    <input class="search-input" type="number" step="any" name="lat" placeholder="Широта" min="-90" max="90" value="{{ event.lat or '' }}">
+                    <input class="search-input" type="number" step="any" name="lng" placeholder="Долгота" min="-180" max="180" value="{{ event.lng or '' }}">
+                </div>
+            </div>
+            
+            <!-- Дата и время -->
+            <label>Дата и время:</label>
+            <input class="search-input" 
+                   type="datetime-local" 
+                   name="date_time" 
+                   value="{{ event.date_time.strftime('%Y-%m-%dT%H:%M') }}" 
+                   required>
+            
+            <label>Продолжительность (в минутах):</label>
+            <input class="search-input" 
+                   type="number" 
+                   name="duration" 
+                   required
+                   min="1"
+                   value="{{ event.duration }}">
+            
+            <label>Тип мероприятия:</label>
+            <input class="search-input" type="text" name="event_type" value="{{ event.event_type }}" required>
+            
+            <!-- Приватность -->
+            <label>Приватность:</label>
+            <select class="search-input" name="is_private" onchange="togglePasswordField(this.value)">
+                <option value="false" {% if not event.is_private %}selected{% endif %}>Публичное</option>
+                <option value="true" {% if event.is_private %}selected{% endif %}>Приватное</option>
+            </select>
+            
+            <div id="password-field" style="display: {% if event.is_private %}block{% else %}none{% endif %};">
+                <label>Пароль для доступа:</label>
+                <input class="search-input" type="password" name="password" value="{{ event.password or '' }}">
+            </div>
+            
+            <!-- Теги -->
+            <label>Теги:</label>
+            <div class="tag-selector" id="tag-selector">
+                {% for tag in tags %}
+                    <div class="tag-option" 
+                         data-tag-id="{{ tag.id }}"
+                         {% if tag in event.tags %}class="tag-option selected"{% endif %}>
+                        {{ tag.name }}
+                    </div>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="tags" id="selected-tags" value="{% for tag in event.tags %}{{ tag.id }}{% if not loop.last %},{% endif %}{% endfor %}">
+            
+            <!-- Приглашённые известные личности -->
+            <label>Приглашённые известные личности:</label>
+            <div id="invited-personalities-container">
+                {% for personality in event.personalities or [] %}
+                    <div class="personality-field">
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" class="search-input" name="personality_name[]" 
+                                placeholder="Имя личности" value="{{ personality.name }}" required>
+                            <input type="url" class="search-input" name="personality_link[]" 
+                                placeholder="Ссылка (необязательно)" value="{{ personality.link or '' }}">
+                            <button type="button" onclick="this.parentNode.remove()" class="menu-btn" 
+                                    style="background-color: #ff4444;">Удалить</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <button type="button" onclick="addPersonalityField()" class="menu-btn" style="margin-bottom: 20px;">Добавить личность</button>
+            
+            <!-- Изображение -->
+            <label>Текущее изображение:</label>
+            {% if event.image_url %}
+                <img src="{{ url_for('static', filename=event.image_url) }}" style="max-width: 200px; max-height: 200px;"><br>
+            {% else %}
+                <p>Нет изображения</p>
+            {% endif %}
+            <label>Новое изображение:</label>
+            <div class="file-input-container">
+                <label class="file-input-label" for="image-upload">
+                    Выберите файл...
+                    <div class="file-name" id="file-name">Файл не выбран</div>
+                </label>
+                <input class="file-input" type="file" name="image" id="image-upload" accept="image/*">
+            </div>
+            
+            <button type="submit" class="menu-btn">Сохранить изменения</button>
+        </form>
+    </div>
+
     <script>
         let map;
         let marker;
+        let selectedTags = new Set(
+            {% if event.tags %}
+                [{% for tag in event.tags %}"{{ tag.id }}"{% if not loop.last %},{% endif %}{% endfor %}]
+            {% else %}
+                []
+            {% endif %}
+        );
         
         window.onload = function() {
             // Инициализация карты с текущими координатами
@@ -46,7 +265,7 @@
             
             dateTimeField.max = maxDate.toISOString().slice(0, 16);
             
-            // Переключение между онлайн/оффлайн
+            // Переключение между онлайн/офлайн
             const formatSelect = document.querySelector('select[name="format"]');
             toggleFormatFields(formatSelect.value);
             
@@ -61,6 +280,37 @@
             privacySelect.addEventListener('change', function() {
                 togglePasswordField(this.value);
             });
+
+            // Инициализация выбранных тегов
+            document.querySelectorAll('.tag-option').forEach(option => {
+                const tagId = option.dataset.tagId;
+                if (selectedTags.has(tagId)) {
+                    option.classList.add('selected');
+                }
+
+                option.addEventListener('click', function() {
+                    const tagId = this.dataset.tagId;
+                    if (selectedTags.has(tagId)) {
+                        selectedTags.delete(tagId);
+                        this.classList.remove('selected');
+                    } else {
+                        selectedTags.add(tagId);
+                        this.classList.add('selected');
+                    }
+                    updateSelectedTagsInput();
+                });
+            });
+
+            // Обработчик выбора файла
+            document.getElementById('image-upload').addEventListener('change', function(e) {
+                const fileName = e.target.files[0] ? e.target.files[0].name : 'Файл не выбран';
+                document.getElementById('file-name').textContent = fileName;
+            });
+
+            // Добавляем кнопку для добавления личности, если нет ни одной
+            if (document.querySelectorAll('.personality-field').length === 0) {
+                addPersonalityField();
+            }
         };
         
         function initMap(lat, lng) {
@@ -103,106 +353,29 @@
             const passwordField = document.getElementById('password-field');
             passwordField.style.display = value === 'true' ? 'block' : 'none';
         }
+
+        function updateSelectedTagsInput() {
+            const selectedTagsInput = document.getElementById('selected-tags');
+            selectedTagsInput.value = Array.from(selectedTags).join(',');
+        }
+
+        // Функция для добавления поля личности
+        function addPersonalityField(name = '', link = '') {
+            const container = document.getElementById('invited-personalities-container');
+            const div = document.createElement('div');
+            div.className = 'personality-field';
+            div.innerHTML = `
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" class="search-input" name="personality_name[]" 
+                        placeholder="Имя личности" value="${name}" required>
+                    <input type="url" class="search-input" name="personality_link[]" 
+                        placeholder="Ссылка (необязательно)" value="${link}">
+                    <button type="button" onclick="this.parentNode.remove()" class="menu-btn" 
+                            style="background-color: #ff4444;">Удалить</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
     </script>
-</head>
-<body>
-    <div class="header">
-        <a href="{{ url_for('my_events') }}" class="menu-btn">Назад к моим мероприятиям</a>
-    </div>
-    <div class="posts-container">
-        <h2>Редактировать мероприятие</h2>
-        <form method="POST" enctype="multipart/form-data">
-            <!-- Основные поля -->
-            <label>Название:</label><br>
-            <input class="search-input" type="text" name="title" value="{{ event.title }}" required><br><br>
-            
-            <label>Описание:</label><br>
-            <textarea class="search-input" name="description" required>{{ event.description }}</textarea><br><br>
-            
-            <label>Формат:</label><br>
-            <select class="menu-btn" name="format" required>
-                <option value="online" {% if event.format == 'online' %}selected{% endif %}>Онлайн</option>
-                <option value="offline" {% if event.format == 'offline' %}selected{% endif %}>Офлайн</option>
-            </select><br><br>
-            
-            <!-- Онлайн информация -->
-            <div class="online-field" style="display: {% if event.format == 'online' %}block{% else %}none{% endif %};">
-                <label>Информация для подключения:</label><br>
-                <textarea class="search-input" name="online_info">{{ event.online_info or '' }}</textarea><br><br>
-            </div>
-            
-            <!-- Офлайн информация -->
-            <div class="offline-field" style="display: {% if event.format == 'offline' %}block{% else %}none{% endif %};">
-                <label>Название места проведения:</label><br>
-                <input class="search-input" type="text" name="location_name" value="{{ event.location_name or '' }}"><br><br>
-                
-                <label>Адрес места проведения:</label><br>
-                <input class="search-input" type="text" name="location_address" value="{{ event.location_address or '' }}"><br><br>
-                
-                <label>Выберите место на карте:</label>
-                <div id="map-container">
-                    <div id="map"></div>
-                </div>
-                <div class="map-coordinates">
-                    <input class="search-input" type="number" step="any" name="lat" placeholder="Широта" min="-90" max="90" value="{{ event.lat or '' }}">
-                    <input class="search-input" type="number" step="any" name="lng" placeholder="Долгота" min="-180" max="180" value="{{ event.lng or '' }}">
-                </div>
-            </div>
-            
-            <!-- Дата и время -->
-            <label>Дата и время:</label><br>
-            <input class="search-input" 
-                   type="datetime-local" 
-                   name="date_time" 
-                   value="{{ event.date_time.strftime('%Y-%m-%dT%H:%M') }}" 
-                   required><br><br>
-            
-            <label>Продолжительность (в минутах):</label><br>
-            <input class="search-input" 
-                   type="number" 
-                   name="duration" 
-                   required
-                   min="1"
-                   value="{{ event.duration }}"><br><br>
-            
-            <label>Тип мероприятия:</label><br>
-            <input class="search-input" type="text" name="event_type" value="{{ event.event_type }}" required><br><br>
-            
-            <!-- Приватность -->
-            <label>Приватность:</label><br>
-            <select class="menu-btn" name="is_private" onchange="togglePasswordField(this.value)">
-                <option value="false" {% if not event.is_private %}selected{% endif %}>Публичное</option>
-                <option value="true" {% if event.is_private %}selected{% endif %}>Приватное</option>
-            </select><br><br>
-            
-            <div id="password-field" style="display: {% if event.is_private %}block{% else %}none{% endif %};">
-                <label>Пароль для доступа:</label><br>
-                <input class="search-input" type="password" name="password" value="{{ event.password or '' }}"><br><br>
-            </div>
-            
-            <!-- Теги -->
-            <label>Теги:</label><br>
-            <select class="menu-btn" name="tags" multiple>
-                {% for tag in tags %}
-                    <option value="{{ tag.id }}" 
-                        {% if tag in event.tags %}selected{% endif %}>
-                        {{ tag.name }}
-                    </option>
-                {% endfor %}
-            </select><br><br>
-            
-            <!-- Изображение -->
-            <label>Текущее изображение:</label><br>
-            {% if event.image_url %}
-                <img src="{{ url_for('static', filename=event.image_url) }}" style="max-width: 200px; max-height: 200px;"><br>
-            {% else %}
-                <p>Нет изображения</p>
-            {% endif %}
-            <label>Новое изображение:</label><br>
-            <input type="file" name="image" accept="image/*"><br><br>
-            
-            <button type="submit" class="menu-btn">Сохранить изменения</button>
-        </form>
-    </div>
 </body>
 </html>
