@@ -1792,16 +1792,24 @@ def inject_validation_counts():
     return {}
 
 @app.context_processor
-def inject_friend_requests_count():
+def inject_notifications():
+    notifications = {}
     if 'username' in session:
         user = User.query.filter_by(username=session['username']).first()
         if user:
-            pending_requests = Friendship.query.filter_by(
+            # Запросы в друзья
+            notifications['pending_friend_requests'] = Friendship.query.filter_by(
                 friend_id=user.id, 
                 status='pending'
             ).count()
-            return {'pending_friend_requests': pending_requests}
-    return {}
+            
+            # Непрочитанные приглашения на мероприятия
+            notifications['unread_invitations'] = Recommendation.query.filter_by(
+                receiver_id=user.id,
+            ).count()
+            
+    return notifications
+
 
 @app.context_processor
 def inject_user():
