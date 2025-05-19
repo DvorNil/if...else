@@ -324,9 +324,9 @@ function showEventContent() {
         showImageModal(this.src);
     });
     // Отображение приглашенных личностей
+    personalitiesArray = JSON.parse(e.personalities || '[]')
     const personalitiesList = document.getElementById('modal-personalities-list');
-    if (e.personalities && e.personalities.length > 0) {
-        personalitiesArray = JSON.parse(e.personalities || '[]')
+    if (e.personalities && e.personalities.length > 0 && personalitiesArray) {
         personalitiesList.innerHTML = personalitiesArray.map(person => {
             if (person.link) {
                 return `<div><a href="${person.link}" target="_blank">${person.name}</a></div>`;
