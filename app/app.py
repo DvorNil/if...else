@@ -19,6 +19,8 @@ import base64
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from math import radians, sin, cos, sqrt, atan2
+from authlib.integrations.flask_client import OAuth
+from urllib.parse import quote_plus, urlencode
 
 app = Flask(__name__)
 app.secret_key = '6jujmgkxze4png8ch3xg8r3052a01ia'
@@ -45,6 +47,7 @@ Session(app)
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 mail = Mail(app)
+oauth = OAuth(app)
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 limiter = Limiter(
     get_remote_address,
@@ -60,6 +63,32 @@ ROLE_TRANSLATIONS = {
     'admin': 'Администратор',
     'moderator': 'Модератор'
 }
+
+# Конфигурация Google OAuth
+app.config['GOOGLE_CLIENT_ID'] = '683093730403-c5lr3sc327accun7bp84m3o1bj6320ls.apps.googleusercontent.com'
+app.config['GOOGLE_CLIENT_SECRET'] = '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'
+app.config['GOOGLE_DISCOVERY_URL'] = 'https://accounts.google.com/.well-known/openid-configuration'
+
+google = oauth.register(
+    name='google',
+    client_id=app.config['GOOGLE_CLIENT_ID'],
+    client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+    server_metadata_url=app.config['GOOGLE_DISCOVERY_URL'],
+    client_kwargs={'scope': 'openid email profile'},
+)
+
+# Конфигурация Yandex OAuth
+app.config['YANDEX_CLIENT_ID'] = '718624ad945341eea8a58fc173231b7f'
+app.config['YANDEX_CLIENT_SECRET'] = 'bab54b8d65c5449a904023ef3f5b28d5'
+
+yandex = oauth.register(
+    name='yandex',
+    client_id=app.config['YANDEX_CLIENT_ID'],
+    client_secret=app.config['YANDEX_CLIENT_SECRET'],
+    authorize_url='https://oauth.yandex.ru/authorize',
+    access_token_url='https://oauth.yandex.ru/token',
+    client_kwargs={'scope': 'login:email login:info'},
+)
 
 # Модель пользователя
 class User(db.Model):
@@ -2523,6 +2552,87 @@ def delete_tag(tag_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+@app.route('/login/<provider>')
+def login_oauth(provider):
+    if provider == 'google':
+        redirect_uri = url_for('auth_google', _external=True)
+        return google.authorize_redirect(redirect_uri)
+    elif provider == 'yandex':
+        redirect_uri = url_for('auth_yandex', _external=True)
+        return yandex.authorize_redirect(redirect_uri)
+    elif provider == 'vk':
+        redirect_uri = url_for('auth_vk', _external=True)
+        return vk.authorize_redirect(redirect_uri)
+    return redirect(url_for('login'))
+
+@app.route('/auth/google')
+def auth_google():
+    token = google.authorize_access_token()
+    
+    # Получаем nonce из сессии (если он был установлен при первом запросе)
+    nonce = session.pop('google_auth_nonce', None)
+    
+    try:
+        userinfo = google.parse_id_token(token, nonce=nonce)
+    except Exception as e:
+        flash('Ошибка аутентификации через Google', 'error')
+        app.logger.error(f'Google auth error: {str(e)}')
+        return redirect(url_for('login'))
+    
+    # Проверка и создание пользователя
+    user = User.query.filter_by(email=userinfo['email']).first()
+    if not user:
+        # Создание нового пользователя
+        username = userinfo.get('given_name', userinfo['email'].split('@')[0])
+        # Проверка на уникальность имени пользователя
+        if User.query.filter_by(username=username).first():
+            username = f"{username}_{userinfo['sub'][:4]}"
+            
+        user = User(
+            username=username,
+            email=userinfo['email'],
+            password='',  # Пароль не нужен для OAuth
+            role='participant',
+            email_confirmed=True
+        )
+        db.session.add(user)
+        db.session.commit()
+    
+    session['username'] = user.username
+    session['role'] = user.role
+    return redirect(url_for('home'))
+
+@app.route('/auth/yandex')
+def auth_yandex():
+    token = yandex.authorize_access_token()
+    resp = yandex.get('https://login.yandex.ru/info', token=token)
+    userinfo = resp.json()
+    
+    email = userinfo.get('default_email')
+    if not email:
+        flash('Не удалось получить email от Yandex', 'error')
+        return redirect(url_for('login'))
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        username = userinfo.get('login', email.split('@')[0])
+        if User.query.filter_by(username=username).first():
+            username = f"{username}_{userinfo['id']}"
+            
+        user = User(
+            username=username,
+            email=email,
+            password='',
+            role='participant',
+            email_confirmed=True
+        )
+        db.session.add(user)
+        db.session.commit()
+    
+    session['username'] = user.username
+    session['role'] = user.role
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
     app.run(debug=True)

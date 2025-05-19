@@ -44,7 +44,51 @@
             text-align: center;
             margin-bottom: 15px;
         }
+        .social-login {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .social-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .social-btn.google {
+            background: #4285F4;
+        }
+        .social-btn.yandex {
+            background: #FFCC00;
+            color: #000;
+        }
+        .social-btn.vk {
+            background: #4A76A8;
+        }
+        .social-btn i {
+            margin-right: 8px;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .divider::before, .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #555;
+        }
+        .divider-text {
+            padding: 0 10px;
+            color: #888;
+        }
     </style>
+    <!-- Иконки Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="header">
@@ -61,6 +105,20 @@
         {% if attempts_left %}
             <p class="attempts-left">Осталось попыток: {{ attempts_left }}</p>
         {% endif %}
+        
+        <div class="social-login">
+            <a href="{{ url_for('login_oauth', provider='google') }}" class="social-btn google">
+                <i class="fab fa-google"></i> Google
+            </a>
+            <a href="{{ url_for('login_oauth', provider='yandex') }}" class="social-btn yandex">
+                <i class="fab fa-yandex"></i> Yandex
+            </a>
+        </div>
+        
+        <div class="divider">
+            <span class="divider-text">или</span>
+        </div>
+        
         <form method="POST">
             <label>Имя пользователя:</label>
             <input class="search-input" type="text" name="username" required placeholder="Введите логин">
