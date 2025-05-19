@@ -903,7 +903,8 @@ def show_map():
             'lat': event.lat,
             'lng': event.lng,
             'isPrivate': event.is_private,
-            'imageUrl': event.image_url
+            'imageUrl': event.image_url,
+            'personalities': event.personalities
         }
         for event in events if event.lat and event.lng
     }
@@ -2395,7 +2396,7 @@ def get_event_data():
         'dateTime': event.date_time.isoformat(),
         'duration': event.duration,
         'organizerUsername': event.organizer.username,
-        'personalities': event.personalities or []
+        'personalities': personalities
     })
 
 @app.route('/event/<int:event_id>')

@@ -323,10 +323,23 @@ function showEventContent() {
         e.stopPropagation();
         showImageModal(this.src);
     });
+
     // Отображение приглашенных личностей
-    personalitiesArray = JSON.parse(e.personalities || '[]')
+    let personalitiesArray = [];
+    try {
+        // Проверяем, является ли personalities уже массивом или строкой JSON
+        if (Array.isArray(e.personalities)) {
+            personalitiesArray = e.personalities;
+        } else if (typeof e.personalities === 'string') {
+            personalitiesArray = JSON.parse(e.personalities || '[]');
+        }
+    } catch (error) {
+        console.error('Error parsing personalities:', error);
+        personalitiesArray = [];
+    }
+
     const personalitiesList = document.getElementById('modal-personalities-list');
-    if (e.personalities && e.personalities.length > 0 && personalitiesArray) {
+    if (personalitiesArray && personalitiesArray.length > 0) {
         personalitiesList.innerHTML = personalitiesArray.map(person => {
             if (person.link) {
                 return `<div><a href="${person.link}" target="_blank">${person.name}</a></div>`;
