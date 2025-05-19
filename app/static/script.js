@@ -323,6 +323,21 @@ function showEventContent() {
         showImageModal(this.src);
     });
 
+    // Отображение приглашенных личностей
+    const personalitiesList = document.getElementById('modal-personalities-list');
+    if (e.personalities && e.personalities.length > 0) {
+        personalitiesList.innerHTML = e.personalities.map(person => {
+            if (person.link) {
+                return `<div><a href="${person.link}" target="_blank">${person.name}</a></div>`;
+            } else {
+                return `<div>${person.name}</div>`;
+            }
+        }).join('');
+        document.getElementById('personalities-section').style.display = 'block';
+    } else {
+        document.getElementById('personalities-section').style.display = 'none';
+    }
+
     // Формат мероприятия
     if (e.format === 'online') {
         document.getElementById('location-info').style.display = 'none';

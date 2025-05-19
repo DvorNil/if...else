@@ -208,6 +208,7 @@ class Event(db.Model):
     password = db.Column(db.String(100))  # Пароль для приватных мероприятий
     organizer = db.relationship('User', backref='events')
     tags = db.relationship('Tag', secondary='event_tag', backref='events')
+    personalities = db.Column(db.JSON)
     user_statuses = db.relationship(
         'UserEventStatus',
         backref=db.backref('event', lazy='joined'),
@@ -737,6 +738,13 @@ def add_event():
         is_private = request.form.get('is_private') == 'true'
         password = request.form.get('password') if is_private else None
         image_url = None
+        personalities = []
+        names = request.form.getlist('personality_name[]')
+        links = request.form.getlist('personality_link[]')
+        
+        for name, link in zip(names, links):
+            if name.strip():  # Добавляем только если указано имя
+                personalities.append({"name": name.strip(), "link": link.strip()})
 
         if 'image' in request.files:
             file = request.files['image']
@@ -763,7 +771,8 @@ def add_event():
             event_type=event_type,
             image_url=image_url,
             is_private=is_private,
-            password=password
+            password=password,
+            personalities=personalities
         )
         db.session.add(event)
         db.session.flush()
@@ -2368,7 +2377,8 @@ def get_event_data():
         'onlineInfo': event.online_info,
         'dateTime': event.date_time.isoformat(),
         'duration': event.duration,
-        'organizerUsername': event.organizer.username
+        'organizerUsername': event.organizer.username,
+        'personalities': event.personalities or []
     })
 
 @app.route('/event/<int:event_id>')

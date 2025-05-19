@@ -187,6 +187,11 @@
                 {% endfor %}
             </div>
             <input type="hidden" name="tags" id="selected-tags">
+
+            <label>Приглашённые известные личности:</label>
+            <div id="invited-personalities-container">
+            </div>
+            <button type="button" onclick="addPersonalityField()" class="menu-btn" style="margin-bottom: 20px;">Добавить личность</button>
             
             <label>Изображение:</label>
             <div class="file-input-container">
@@ -210,6 +215,7 @@
             // Инициализация карты
             initMap();
             updateSelectedTagsInput();
+            addPersonalityField();
             
             // Ограничения для даты
             const dateTimeField = document.querySelector('input[type="datetime-local"]');
@@ -300,6 +306,22 @@
             selectedTagsInput.value = Array.from(selectedTags).join(',');
         }
 
+        function addPersonalityField(name = '', link = '') {
+            const container = document.getElementById('invited-personalities-container');
+            const div = document.createElement('div');
+            div.className = 'personality-field';
+            div.innerHTML = `
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" class="search-input" name="personality_name[]" 
+                        placeholder="Имя личности" value="${name}" required>
+                    <input type="url" class="search-input" name="personality_link[]" 
+                        placeholder="Ссылка (необязательно)" value="${link}">
+                    <button type="button" onclick="this.parentNode.remove()" class="menu-btn" 
+                            style="background-color: #ff4444;">Удалить</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
 
     </script>
 </body>
