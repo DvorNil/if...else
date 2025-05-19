@@ -70,10 +70,10 @@
                             </a>
                         {% endif %}
 
-                        {% if session.role in ['organizer', 'moderator', 'admin'] and not current_user.validation %}
+                        {% if session.role in ['moderator', 'admin'] and not current_user.validation %}
                             <a href="{{ url_for('add_tag') }}" class="sidebar-item">
                                 <img src="{{ url_for('static', filename='images/tags-icon.png') }}" class="sidebar-icon">
-                                <span>Добавить тег</span>
+                                <span>Управление тегами</span>
                             </a>
                         {% endif %}   
                                                 

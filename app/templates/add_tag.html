@@ -3,18 +3,130 @@
 <head>
     <title>Добавить тег</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .auth-container {
+            background: #2a2a2a;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            margin: 50px auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .auth-container h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ff6200;
+        }
+        .auth-container label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+        .auth-container .search-input {
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .auth-container .menu-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
+        .tags-container {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+        .tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .tag-item {
+            display: inline-flex;
+            align-items: center;
+            background-color: #1a1a1a;
+            padding: 8px 15px;
+            margin: 0;
+            border-radius: 20px;
+            position: relative;
+            border: 1px solid #333;
+        }
+        .delete-tag {
+            margin-left: 8px;
+            cursor: pointer;
+            color: #ff4444;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: color 0.2s;
+        }
+        .delete-tag:hover {
+            color: #ff0000;
+        }
+        .tags-title {
+            color: #ff6200;
+            margin-bottom: 15px;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
         <a href="{{ url_for('home') }}" class="menu-btn">На главную</a>
     </div>
-    <div class="posts-container">
+    
+    <div class="auth-container">
         <h2>Добавить тег</h2>
         <form method="POST">
-            <label>Название тега:</label><br>
-            <input class="search-input" type="text" name="tag_name" required><br><br>
+            <label>Название тега:</label>
+            <input class="search-input" type="text" name="tag_name" required placeholder="Введите название тега">
+            
             <button type="submit" class="menu-btn">Добавить</button>
         </form>
+
+        <div class="tags-container">
+            <h3 class="tags-title">Существующие теги:</h3>
+            <div class="tags-list">
+                {% for tag in tags %}
+                <div class="tag-item" data-tag-id="{{ tag.id }}">
+                    {{ tag.name }}
+                    <span class="delete-tag" onclick="deleteTag({{ tag.id }}, '{{ tag.name }}')">×</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
+
+    <script>
+        function deleteTag(tagId, tagName) {
+            if (!confirm(`Удалить тег "${tagName}"? Он будет удален из всех мероприятий.`)) {
+                return;
+            }
+
+            fetch(`/delete_tag/${tagId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Удаляем тег из списка
+                    document.querySelector(`.tag-item[data-tag-id="${tagId}"]`).remove();
+                    // Показываем сообщение об успехе
+                    alert('Тег успешно удален');
+                } else {
+                    throw new Error('Ошибка удаления тега');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message);
+            });
+        }
+    </script>
 </body>
 </html>

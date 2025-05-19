@@ -911,13 +911,16 @@ def generate_map():
 def add_tag():
     if 'username' not in session or session['role'] not in ['organizer', 'moderator', 'admin']:
         return redirect(url_for('home'))
+    
     if request.method == 'POST':
         tag_name = request.form.get('tag_name')
         if tag_name and not Tag.query.filter_by(name=tag_name).first():
             db.session.add(Tag(name=tag_name))
             db.session.commit()
-        return redirect(url_for('home'))
-    return render_template('add_tag.html')
+        return redirect(url_for('add_tag'))
+    
+    tags = Tag.query.order_by(Tag.name).all()
+    return render_template('add_tag.html', tags=tags)
 
 
 @app.route('/update_event_status', methods=['POST'])
@@ -2471,6 +2474,27 @@ def mark_event_as_read(event_id):
     
     db.session.commit()
     return jsonify({"success": True})
+
+@app.route('/delete_tag/<int:tag_id>', methods=['DELETE'])
+def delete_tag(tag_id):
+    if 'username' not in session or session['role'] not in ['moderator', 'admin']:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    tag = Tag.query.get_or_404(tag_id)
+    
+    try:
+        # Удаляем связи тега с мероприятиями
+        EventTag.query.filter_by(tag_id=tag.id).delete()
+        # Удаляем связи тега с пользователями (из избранного)
+        UserTag.query.filter_by(tag_id=tag.id).delete()
+        # Удаляем сам тег
+        db.session.delete(tag)
+        db.session.commit()
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
