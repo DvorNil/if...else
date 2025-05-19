@@ -7,7 +7,8 @@ folium==0.14.0
 itsdangerous==2.1.2
 python-dotenv==1.0.0
 gunicorn==20.1.0
-werkzeug
-pyotp
-qrcode
-flask-limiter
+werkzeug==3.0.0
+pyotp==2.9.0
+qrcode==7.4.2
+Flask-limiter==3.5.0
+Authlib==1.5.2
