@@ -52,7 +52,7 @@ serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["10000 per day", "10000 per hour"],
     storage_uri="memory://",
 )
 
@@ -152,7 +152,7 @@ class User(db.Model):
 
             # 1. Теги
             common_tags = len(favorite_tags & {t.id for t in event.tags})
-            score += common_tags * 15
+            score += common_tags * 30
 
             # 2. Рейтинг
             score += float(event.average_rating) * 5  # Явное преобразование
@@ -201,8 +201,8 @@ class User(db.Model):
                     user_coords[0], user_coords[1],
                     event.lat, event.lng
                 )
-                if distance <= 10:
-                    proximity_score = 100 * (1 - (distance / 10)) ** 2
+                if distance <= 20:
+                    proximity_score = 500 * (1 - (distance / 20)) ** 2
                     score += proximity_score
 
             scores.append((event, score))
@@ -572,7 +572,7 @@ def home():
     for event in events:
         if user_coords and event.lat and event.lng:
             distance = haversine(user_coords[0], user_coords[1], event.lat, event.lng)
-            if distance <= 10:
+            if distance <= 20:
                 event.distance = distance
                 filtered_events.append(event)
         else:
@@ -2400,6 +2400,7 @@ def get_event_data():
     event_id = request.args.get('event_id')
     event = Event.query.get_or_404(event_id)
     user = User.query.filter_by(username=session.get('username')).first()
+    personalities = event.personalities
     
     is_new = False
     if user:
